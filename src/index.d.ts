@@ -8,38 +8,72 @@ import type { ComponentType, ReactNode } from 'react';
 
 // ── streaming ──────────────────────────────────────────────────────────────
 export interface SSEEvent { type: string; [k: string]: unknown; }
+
+/** Semantic callbacks over the Responses SSE shape. All optional — handle only what you render. */
+export interface ResponseHandlers {
+  /** The response id, as soon as response.created arrives. */
+  onCreated?(responseId: string): void;
+  /** The server-side session id, for continuing this conversation on the next turn. */
+  onSession?(sessionId: string): void;
+  onReasoningDelta?(text: string): void;
+  onTextDelta?(text: string): void;
+  onToolCall?(name: string, args: string, callId: string): void;
+  onToolResult?(callId: string, output: string): void;
+  onFile?(file: { container_id: string; file_id: string; filename: string }): void;
+  /** Terminal event. `status` distinguishes completed / incomplete / failed (incl. cancels). */
+  onDone?(status: string, response: unknown): void;
+  onError?(message: string): void;
+}
+
+export interface ResponsesDispatcher {
+  responseId: string | null;
+  dispatch(event: SSEEvent): void;
+}
+/** Event-shape decoding only — pair with readSSEStream when you own the read loop. */
+export function createResponsesDispatcher(handlers: ResponseHandlers): ResponsesDispatcher;
+
+/** Parse an SSE byte stream into events. Takes the response BODY, not the Response. */
 export function readSSEStream(
-  response: Response,
+  body: ReadableStream<Uint8Array> | null,
   onEvent: (event: SSEEvent) => void,
 ): Promise<void>;
-export function createResponsesDispatcher(handlers: Record<string, (event: SSEEvent) => void>):
-  (event: SSEEvent) => void;
-export function pumpResponsesStream(args: {
-  response: Response;
-  onEvent?: (event: SSEEvent) => void;
-  [k: string]: unknown;
-}): Promise<unknown>;
+
+/** Read + decode in one call. Resolves to the response id. */
+export function pumpResponsesStream(
+  body: ReadableStream<Uint8Array> | null,
+  handlers: ResponseHandlers,
+): Promise<string | null>;
 
 // ── block state machine ─────────────────────────────────────────────────────
+// These are pass-through array transforms: they append to, or amend the tail of, whatever block
+// shape the caller already uses. Generic over that shape so an app with its own discriminated
+// Block union keeps it, instead of having every result widened to a bag of unknowns.
 export type Block = Record<string, unknown>;
-export function withText(blocks: Block[], text: string): Block[];
-export function withReasoning(blocks: Block[], text: string): Block[];
-export function withStep(blocks: Block[], step: Record<string, unknown>): Block[];
-export function withResult(blocks: Block[], result: Record<string, unknown>): Block[];
-export function asstText(blocks: Block[]): string;
+export function withText<B = Block>(blocks: B[], text: string): B[];
+export function withReasoning<B = Block>(blocks: B[], text: string): B[];
+export function withStep<B = Block>(blocks: B[], step: Record<string, unknown>): B[];
+/** Attach a tool result to the step with this call id. */
+export function withResult<B = Block>(blocks: B[], callId: string, output: unknown): B[];
+export function asstText<B = Block>(blocks: B[]): string;
 
 // ── conversation store ──────────────────────────────────────────────────────
+// A tiny keyed store with a React binding: `use(key)` subscribes, `get`/`set` read and write
+// outside render. Values are whatever the caller puts in, so they stay generic per key.
 export interface ConversationStore {
-  getState: () => unknown;
-  setState: (next: unknown) => void;
-  subscribe: (listener: () => void) => () => void;
-  [k: string]: unknown;
+  get<T = unknown>(key: string): T;
+  set<T = unknown>(key: string, next: T | ((prev: T) => T)): void;
+  seed(key: string, value: unknown): void;
+  updateLastAssistant(key: string, update: (msg: unknown) => unknown): void;
+  use<T = unknown>(key: string): T;
 }
-export function createConversationStore(initial?: unknown): ConversationStore;
+/** `makeInitial(key)` supplies the starting value the first time a key is read. */
+export function createConversationStore(
+  makeInitial?: (key: string) => unknown,
+): ConversationStore;
 
 // ── icons ───────────────────────────────────────────────────────────────────
 export const Svg: ComponentType<{ s?: number; children?: ReactNode }>;
-export const Chevron: ComponentType<{ open?: boolean }>;
+export const Chevron: ComponentType<{ dir?: 'left' | 'right' | 'down'; size?: number }>;
 export const IcTool: ComponentType;
 export const IcPlug: ComponentType;
 export const IcSkill: ComponentType;
@@ -65,7 +99,22 @@ export function summarizeSteps(steps: unknown[]): string;
 // ── components (permissive props: see README for slot contracts) ─────────────
 export const ToolGroup: ComponentType<Record<string, unknown>>;
 export const ToolRow: ComponentType<Record<string, unknown>>;
-export const ChatMessages: ComponentType<Record<string, unknown>>;
+/** The message list. `messages` is the conversation you own — this renders it and its tool
+ *  timeline; every render slot is optional. */
+export interface ChatMessagesProps {
+  messages: unknown[];
+  renderMarkdown?: (text: string) => ReactNode;
+  renderMessage?: (message: unknown, index: number) => ReactNode;
+  renderStep?: (step: unknown) => ReactNode;
+  userExtras?: (message: unknown) => ReactNode;
+  workingExtra?: ReactNode;
+  assistantFooter?: (message: unknown, index: number) => ReactNode;
+  statusLabels?: Record<string, string>;
+  workingLabel?: string;
+  toolLabels?: Record<string, string>;
+  [k: string]: unknown;
+}
+export const ChatMessages: ComponentType<ChatMessagesProps>;
 export const ChatMessagesSkeleton: ComponentType<Record<string, unknown>>;
 export const UserTurn: ComponentType<Record<string, unknown>>;
 export const AssistantTurn: ComponentType<Record<string, unknown>>;

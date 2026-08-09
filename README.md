@@ -14,7 +14,7 @@ _Reify_ — to make the abstract concrete. ReifyUI reifies an agent's intent int
 npm install reifyui
 ```
 
-> **Status: v0.2, early.** ReifyUI is an open foundation, not a finished platform. This first
+> **Status: v0.4, early.** ReifyUI is an open foundation, not a finished platform. This first
 > release line ships the rendering-and-interaction core described under **Today** below. The larger
 > vision — a component registry, agent-driven composition, and protocol interop — is on the
 > **Roadmap**, stated plainly so you can tell what runs now from what's coming. We don't ship
@@ -88,29 +88,43 @@ Render a live agent turn from a Server-Sent-Events response:
 
 ```jsx
 import { useState } from 'react';
-import { ChatMessages, Composer, createConversationStore, pumpResponsesStream } from 'reifyui';
+import { ChatMessages, Composer, pumpResponsesStream } from 'reifyui';
 import 'reifyui/styles/chat.css';
 import 'reifyui/styles/themes/light.css'; // or themes/dark.css
 
-const store = createConversationStore();
-
+// You own the conversation array. ReifyUI renders it — text, reasoning, and a collapsible
+// tool-step timeline — and never decides how you fetch or where your state lives.
 export function Chat({ endpoint }) {
-  const [, force] = useState(0);
-  store.subscribe(() => force((n) => n + 1));
+  const [messages, setMessages] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const amendLast = (patch) =>
+    setMessages((m) => m.map((x, i) => (i === m.length - 1 ? { ...x, ...patch(x) } : x)));
 
   async function send(text) {
+    setMessages((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '', steps: [] }]);
+    setBusy(true);
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ input: text, stream: true }),
     });
-    await pumpResponsesStream({ response: res, store });
+    await pumpResponsesStream(res.body, {
+      onTextDelta: (d) => amendLast((x) => ({ text: x.text + d })),
+      onReasoningDelta: (d) => amendLast((x) => ({ reasoning: (x.reasoning || '') + d })),
+      onToolCall: (name, args, callId) =>
+        amendLast((x) => ({ steps: [...x.steps, { name, args, callId }] })),
+      onToolResult: (callId, output) =>
+        amendLast((x) => ({ steps: x.steps.map((s) => (s.callId === callId ? { ...s, output } : s)) })),
+      onDone: () => setBusy(false),
+      onError: () => setBusy(false),
+    });
   }
 
   return (
     <>
-      <ChatMessages store={store} />
-      <Composer onSend={send} placeholder="Ask anything…" />
+      <ChatMessages messages={messages} workingLabel={busy ? 'Working…' : undefined} />
+      <Composer onSend={send} disabled={busy} />
     </>
   );
 }
