@@ -32,29 +32,43 @@ export interface ResponsesDispatcher {
 /** Event-shape decoding only — pair with readSSEStream when you own the read loop. */
 export function createResponsesDispatcher(handlers: ResponseHandlers): ResponsesDispatcher;
 
-/** Parse an SSE byte stream into events. Takes the response BODY, not the Response. */
+/** Frame an SSE byte stream. Takes the response BODY, and hands back each frame's raw `data:`
+ *  payload as a STRING — parsing is the caller's (see pumpResponsesStream for the parsed form). */
 export function readSSEStream(
-  body: ReadableStream<Uint8Array> | null,
-  onEvent: (event: SSEEvent) => void,
+  body: ReadableStream<Uint8Array>,
+  onData: (data: string) => void,
 ): Promise<void>;
 
 /** Read + decode in one call. Resolves to the response id. */
 export function pumpResponsesStream(
-  body: ReadableStream<Uint8Array> | null,
+  body: ReadableStream<Uint8Array>,
   handlers: ResponseHandlers,
 ): Promise<string | null>;
 
 // ── block state machine ─────────────────────────────────────────────────────
-// These are pass-through array transforms: they append to, or amend the tail of, whatever block
-// shape the caller already uses. Generic over that shape so an app with its own discriminated
-// Block union keeps it, instead of having every result widened to a bag of unknowns.
-export type Block = Record<string, unknown>;
-export function withText<B = Block>(blocks: B[], text: string): B[];
-export function withReasoning<B = Block>(blocks: B[], text: string): B[];
-export function withStep<B = Block>(blocks: B[], step: Record<string, unknown>): B[];
-/** Attach a tool result to the step with this call id. */
-export function withResult<B = Block>(blocks: B[], callId: string, output: unknown): B[];
-export function asstText<B = Block>(blocks: B[]): string;
+// An assistant turn is an ORDERED list of blocks appended as events arrive, so tool activity
+// interleaves with prose in real time instead of every tool being hoisted above the text.
+export interface ToolStep {
+  name: string;
+  args?: string;
+  result?: unknown;
+  callId?: string;
+  [k: string]: unknown;
+}
+export type Block =
+  | { kind: 'text'; text: string }
+  | { kind: 'tools'; reasoning: string; steps: ToolStep[] };
+
+/** Append prose, merging into a trailing text block. */
+export function withText(blocks: Block[], delta: string): Block[];
+/** Append reasoning, merging into a trailing tools block. */
+export function withReasoning(blocks: Block[], delta: string): Block[];
+/** Append a tool step, merging into a trailing tools block. */
+export function withStep(blocks: Block[], step: ToolStep): Block[];
+/** Attach a result to the pending step with this call id. */
+export function withResult(blocks: Block[], callId: string, output: unknown): Block[];
+/** All prose of an assistant MESSAGE joined — takes the message, not its blocks. */
+export function asstText(message: { blocks: Block[] }): string;
 
 // ── conversation store ──────────────────────────────────────────────────────
 // A tiny keyed store with a React binding: `use(key)` subscribes, `get`/`set` read and write
@@ -104,15 +118,15 @@ export const ToolRow: ComponentType<Record<string, unknown>>;
  *  timeline; every render slot is optional. */
 // Generic over YOUR message type: the renderer never inspects a message beyond `role` and its
 // blocks, so the slots hand back whatever shape you passed in rather than widening it.
-export interface ChatMessagesProps<M = unknown> {
+export interface ChatMessagesProps<M = any> {
   messages: M[];
   renderMarkdown?: (text: string) => ReactNode;
-  renderMessage?: (message: M, index: number) => ReactNode;
-  renderStep?: (step: unknown, index: number) => ReactNode;
-  userExtras?: (message: M, index: number) => ReactNode;
+  renderMessage?(message: M, index: number): ReactNode;
+  renderStep?(step: ToolStep, index: number): ReactNode;
+  userExtras?(message: M, index: number): ReactNode;
   /** Rendered on the live "working" row — a node, not a slot function. */
   workingExtra?: ReactNode;
-  assistantFooter?: (message: M, index: number) => ReactNode;
+  assistantFooter?(message: M, index: number): ReactNode;
   statusLabels?: Record<string, string>;
   workingLabel?: string;
   toolLabels?: Record<string, string>;
