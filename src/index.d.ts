@@ -61,7 +61,8 @@ export function asstText<B = Block>(blocks: B[]): string;
 // outside render. Values are whatever the caller puts in, so they stay generic per key.
 export interface ConversationStore {
   get<T = unknown>(key: string): T;
-  set<T = unknown>(key: string, next: T | ((prev: T) => T)): void;
+  /** Shallow-merges a partial into the key's current state (or the partial a function returns). */
+  set<T = unknown>(key: string, patch: Partial<T> | ((prev: T) => Partial<T>)): void;
   seed(key: string, value: unknown): void;
   updateLastAssistant(key: string, update: (msg: unknown) => unknown): void;
   use<T = unknown>(key: string): T;
@@ -101,20 +102,23 @@ export const ToolGroup: ComponentType<Record<string, unknown>>;
 export const ToolRow: ComponentType<Record<string, unknown>>;
 /** The message list. `messages` is the conversation you own — this renders it and its tool
  *  timeline; every render slot is optional. */
-export interface ChatMessagesProps {
-  messages: unknown[];
+// Generic over YOUR message type: the renderer never inspects a message beyond `role` and its
+// blocks, so the slots hand back whatever shape you passed in rather than widening it.
+export interface ChatMessagesProps<M = unknown> {
+  messages: M[];
   renderMarkdown?: (text: string) => ReactNode;
-  renderMessage?: (message: unknown, index: number) => ReactNode;
-  renderStep?: (step: unknown) => ReactNode;
-  userExtras?: (message: unknown) => ReactNode;
+  renderMessage?: (message: M, index: number) => ReactNode;
+  renderStep?: (step: unknown, index: number) => ReactNode;
+  userExtras?: (message: M, index: number) => ReactNode;
+  /** Rendered on the live "working" row — a node, not a slot function. */
   workingExtra?: ReactNode;
-  assistantFooter?: (message: unknown, index: number) => ReactNode;
+  assistantFooter?: (message: M, index: number) => ReactNode;
   statusLabels?: Record<string, string>;
   workingLabel?: string;
   toolLabels?: Record<string, string>;
   [k: string]: unknown;
 }
-export const ChatMessages: ComponentType<ChatMessagesProps>;
+export const ChatMessages: <M = unknown>(props: ChatMessagesProps<M>) => ReactNode;
 export const ChatMessagesSkeleton: ComponentType<Record<string, unknown>>;
 export const UserTurn: ComponentType<Record<string, unknown>>;
 export const AssistantTurn: ComponentType<Record<string, unknown>>;
