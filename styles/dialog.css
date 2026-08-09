@@ -1,0 +1,145 @@
+/* Dialog — in-app alert / confirm / prompt. Theme-driven: every colour is a variable with a
+   sensible fallback, so this inherits the host app's palette without configuration. */
+
+.rui-dlg-root { position: fixed; inset: 0; z-index: 9000; pointer-events: none; }
+
+.rui-dlg-backdrop {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: var(--rui-scrim, rgba(15, 23, 42, .34));
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: rui-dlg-fade 120ms ease-out;
+}
+@keyframes rui-dlg-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.rui-dlg-card {
+  width: min(440px, 100%);
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  background: var(--rui-surface, #fff);
+  border: 1px solid var(--rui-border, rgba(15, 23, 42, .08));
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .18), 0 4px 16px rgba(15, 23, 42, .08);
+  overflow: hidden;
+  animation: rui-dlg-pop 140ms cubic-bezier(.2, .7, .2, 1.05);
+}
+.rui-dlg-card.is-wide { width: min(560px, 100%); }
+@keyframes rui-dlg-pop {
+  from { transform: translateY(8px) scale(.97); opacity: 0 }
+  to   { transform: translateY(0) scale(1); opacity: 1 }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rui-dlg-backdrop, .rui-dlg-card { animation: none; }
+}
+
+.rui-dlg-h { padding: 16px 20px 0; }
+.rui-dlg-title {
+  font-size: 15px; font-weight: 600; line-height: 1.4;
+  color: var(--rui-text, #0f172a);
+}
+.rui-dlg-h.is-destructive .rui-dlg-title,
+.rui-dlg-h.is-error       .rui-dlg-title { color: var(--rui-danger, #b91c1c); }
+.rui-dlg-h.is-warning     .rui-dlg-title { color: var(--rui-warn, #b45309); }
+.rui-dlg-h.is-success     .rui-dlg-title { color: var(--rui-ok, #047857); }
+
+.rui-dlg-b { padding: 12px 20px 4px; overflow-y: auto; }
+.rui-dlg-msg {
+  font-size: 13px; line-height: 1.55;
+  color: var(--rui-text-mute, #475569);
+  margin-bottom: 8px;
+  white-space: pre-wrap; word-break: break-word;
+}
+.rui-dlg-label {
+  display: block; margin: 10px 0 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--rui-text-mute, #475569);
+}
+.rui-dlg-input {
+  width: 100%; padding: 9px 11px;
+  font: inherit; font-size: 13px;
+  color: var(--rui-text, #0f172a);
+  background: var(--rui-surface, #fff);
+  border: 1px solid var(--rui-border, rgba(15, 23, 42, .16));
+  border-radius: 8px; outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.rui-dlg-input:focus {
+  border-color: var(--rui-accent, #285aff);
+  box-shadow: 0 0 0 3px var(--rui-accent-ring, rgba(40, 90, 255, .14));
+}
+.rui-dlg-input.is-err { border-color: var(--rui-danger, #dc2626); }
+.rui-dlg-input.is-err:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, .12); }
+textarea.rui-dlg-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+.rui-dlg-help { margin-top: 6px; font-size: 11px; line-height: 1.5; color: var(--rui-text-mute, #475569); }
+.rui-dlg-err  { margin-top: 6px; font-size: 11px; line-height: 1.5; color: var(--rui-danger, #b91c1c); }
+
+.rui-dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 16px; }
+
+.rui-dlg-btn {
+  appearance: none; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 500;
+  padding: 8px 16px; min-width: 76px;
+  border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--rui-text, #0f172a);
+  transition: background .12s, border-color .12s, color .12s, transform .04s;
+}
+.rui-dlg-btn:focus-visible { outline: 2px solid var(--rui-accent, #285aff); outline-offset: 2px; }
+.rui-dlg-btn:active { transform: translateY(1px); }
+
+.rui-dlg-secondary {
+  background: var(--rui-surface, #fff);
+  border-color: var(--rui-border, rgba(15, 23, 42, .18));
+  color: var(--rui-text, #0f172a);
+}
+.rui-dlg-secondary:hover { background: var(--rui-surface-2, #f8fafc); }
+
+.rui-dlg-primary {
+  background: var(--rui-accent, #285aff);
+  border-color: var(--rui-accent, #285aff);
+  color: #fff;
+}
+.rui-dlg-primary:hover { filter: brightness(1.06); }
+.rui-dlg-primary.is-destructive {
+  background: var(--rui-danger, #dc2626);
+  border-color: var(--rui-danger, #dc2626);
+}
+
+.rui-dlg-typegrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;
+  margin-bottom: 4px;
+}
+.rui-dlg-type {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; cursor: pointer;
+  font: inherit; font-size: 13px; text-align: left;
+  color: var(--rui-text, #0f172a);
+  background: var(--rui-surface, #fff);
+  border: 1px solid var(--rui-border, rgba(15, 23, 42, .14));
+  border-radius: 10px;
+}
+.rui-dlg-type:hover { background: var(--rui-surface-2, #f8fafc); }
+.rui-dlg-type.is-on {
+  border-color: var(--rui-accent, #285aff);
+  box-shadow: 0 0 0 2px var(--rui-accent-ring, rgba(40, 90, 255, .14));
+}
+.rui-dlg-type-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px; flex: none;
+}
+.rui-dlg-type-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Narrow viewports: the card becomes a bottom sheet and the actions go full-width, so
+   nothing crushes and the primary action stays reachable with a thumb. */
+@media (max-width: 480px) {
+  .rui-dlg-backdrop { align-items: flex-end; padding: 0; }
+  .rui-dlg-card, .rui-dlg-card.is-wide {
+    width: 100%; max-height: 88vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+  }
+  .rui-dlg-f { flex-direction: column-reverse; }
+  .rui-dlg-btn { width: 100%; }
+}

@@ -99,6 +99,41 @@ export interface TaskListProps {
 export const TaskList: ComponentType<TaskListProps>;
 export function taskStatusGroup(status: string): 'working' | 'done' | 'failed' | 'idle';
 
+// ── dialogs (alert / confirm / prompt, in-app) ───────────────────────────────
+export type DialogVariant = 'destructive' | 'error' | 'warning' | 'success';
+export interface DialogLabels {
+  confirm?: string; cancel?: string; ok?: string; create?: string; required?: string;
+}
+export interface AlertOptions {
+  title?: string; message?: ReactNode; variant?: DialogVariant; confirmLabel?: string;
+}
+export interface ConfirmOptions extends AlertOptions {
+  destructive?: boolean; cancelLabel?: string;
+}
+export interface PromptOptions extends ConfirmOptions {
+  label?: string; placeholder?: string; help?: ReactNode;
+  defaultValue?: string; inputType?: string;
+  multiline?: boolean; rows?: number; required?: boolean;
+  /** Return an error message to reject, or null/undefined to accept. */
+  validate?: (value: string) => string | null | undefined;
+}
+export interface CreateType { kind: string; label: string; color?: string; icon?: ReactNode; }
+export interface CreateOptions extends PromptOptions {
+  types?: CreateType[]; defaultKind?: string;
+}
+export interface DialogApi {
+  alert(opts: AlertOptions): Promise<boolean>;
+  confirm(opts: ConfirmOptions): Promise<boolean>;
+  /** Resolves to the entered string, or null when cancelled. */
+  prompt(opts: PromptOptions): Promise<string | null>;
+  create(opts: CreateOptions): Promise<{ kind: string; name: string } | null>;
+  labels: Required<DialogLabels>;
+}
+export const DialogHost: ComponentType<{
+  children?: ReactNode; locale?: 'en' | 'zh'; labels?: DialogLabels;
+}>;
+export function useDialog(): DialogApi;
+
 // ── auth client (optional; couples to a /v1/auth-style backend) ──────────────
 export interface AuthConfig { engine: string; product: string; loginHash?: string; }
 export function configureAuth(cfg: Partial<AuthConfig> & { product: string; engine: string }): void;

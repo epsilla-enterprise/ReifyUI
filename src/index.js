@@ -16,6 +16,10 @@ export { useResizablePane, PaneResizer } from './components/resizable.jsx';
 // Master list beside a conversation (runs/sessions): filter, status, cursor pagination.
 // Transport-agnostic — the consumer supplies fetchPage(cursor) -> {items, cursor}.
 export { TaskList, taskStatusGroup } from './components/TaskList.jsx';
+// In-app alert/confirm/prompt. Native browser popups block the event loop and can't be styled,
+// which reads as a browser warning rather than as part of the product — these replace them with
+// the same awaited call-site shape. Needs styles/dialog.css and a <DialogHost> at the root.
+export { DialogHost, useDialog } from './components/Dialog.jsx';
 // Shared product auth (extracted from ContextualGraph): the engine /v1/auth
 // client (configureAuth({product, engine}) once at boot) + the sign-in form
 // and Google SSO button. Consumers may also deep-import './auth/*'.

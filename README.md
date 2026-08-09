@@ -54,6 +54,7 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Chat surface** | `ChatMessages`, `UserTurn`, `AssistantTurn`, `ToolGroup`, `ToolRow`, `Composer` — message list + a collapsible "ran 5 commands, wrote a file" tool-step timeline |
 | **Rich blocks** | `CodeBlock` (highlight.js + mermaid + charts), `useResizablePane`, `PaneResizer` |
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
+| **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
 | **Slides** | a slide renderer/editor + `reifyui/styles/slides.css` |
 | **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid |
 | **Icons / tool meta** | `Ic*` icon set, `toolMeta`, `humanize`, `summarizeSteps` |
@@ -130,6 +131,7 @@ import 'reifyui/styles/themes/dark.css';   // dark theme variables
 import 'reifyui/styles/slides.css';        // slides
 import 'reifyui/styles/sheet.css';         // spreadsheet grid
 import 'reifyui/styles/tasks.css';         // task list
+import 'reifyui/styles/dialog.css';        // alert / confirm / prompt dialogs
 ```
 
 Themes are CSS-variable files — load one, or switch at runtime by toggling which you apply. Override
