@@ -1,0 +1,26 @@
+/* UI Core light preset — the HarnessRouter palette (the extraction's source of truth).
+   Apply by putting .uic-light on any ancestor of the chat surface, or copy these values into
+   your own token layer (see styles/chat.css for the contract). */
+.uic-light {
+  --uic-surface: #FFFFFF;
+  --uic-line: #DDDFE6;
+  --uic-ink: #111317;
+  --uic-ink-2: #3A3D45;
+  --uic-mute: #5B5D66;
+  --uic-brand: #285AFF;
+  --uic-brand-ink: #1641D8;
+  --uic-brand-soft: #E1E9FF;
+  --uic-brand-faint: #EFF3FF;
+  --uic-ok: #16a34a;
+  --uic-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --uic-shadow-1: 0 1px 2px rgba(17, 24, 39, .04), 0 1px 1px rgba(17, 24, 39, .03);
+  --uic-code-block-bg: #0f1117;
+  --uic-code-block-ink: #e6e8ee;
+  --uic-fail-ink: #b91c1c; --uic-fail-line: #fecaca; --uic-fail-bg: #fef2f2;
+  --uic-cancel-ink: #52525b; --uic-cancel-line: #e4e4e7; --uic-cancel-bg: #fafafa;
+  --uic-incomplete-ink: #92400e; --uic-incomplete-line: #fde68a; --uic-incomplete-bg: #fffbeb;
+  --uic-font-md: 14px;
+  --uic-turn-pad-x: 28px;
+  --uic-bubble-max-w: 80%;
+  --uic-working-ink: var(--uic-mute);
+}

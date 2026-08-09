@@ -1,0 +1,26 @@
+/* UI Core dark preset — for dark-chrome products (e.g. the AI Video Editor).
+   Apply by putting .uic-dark on any ancestor of the chat surface. Tune per product by
+   overriding individual tokens after this import. */
+.uic-dark {
+  --uic-surface: #1E1F24;
+  --uic-line: #33353D;
+  --uic-ink: #F2F3F7;
+  --uic-ink-2: #C9CCD6;
+  --uic-mute: #8B8F9C;
+  --uic-brand: #7C9AFF;
+  --uic-brand-ink: #A3B8FF;
+  --uic-brand-soft: rgba(124, 154, 255, .32);
+  --uic-brand-faint: rgba(124, 154, 255, .12);
+  --uic-ok: #34d399;
+  --uic-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --uic-shadow-1: 0 1px 2px rgba(0, 0, 0, .35), 0 1px 1px rgba(0, 0, 0, .25);
+  --uic-code-block-bg: #0f1117;
+  --uic-code-block-ink: #e6e8ee;
+  --uic-fail-ink: #f87171; --uic-fail-line: rgba(248, 113, 113, .38); --uic-fail-bg: rgba(248, 113, 113, .10);
+  --uic-cancel-ink: #a1a1aa; --uic-cancel-line: rgba(161, 161, 170, .38); --uic-cancel-bg: rgba(161, 161, 170, .10);
+  --uic-incomplete-ink: #fbbf24; --uic-incomplete-line: rgba(251, 191, 36, .38); --uic-incomplete-bg: rgba(251, 191, 36, .10);
+  --uic-font-md: 14px;
+  --uic-turn-pad-x: 28px;
+  --uic-bubble-max-w: 80%;
+  --uic-working-ink: var(--uic-mute);
+}

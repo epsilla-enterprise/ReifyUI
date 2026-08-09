@@ -1,0 +1,175 @@
+/* UI Core — Conversational Agent surface styles.
+   Extracted from HarnessRouter's workbench chat (hr.css wbx-*); class names kept so the
+   extraction is drop-in. Every color / font / key spacing reads a --uic-* custom property with
+   the HarnessRouter light value as fallback, so an unthemed consumer looks exactly like HR.
+
+   Token contract (define on :root or any ancestor of the chat surface):
+     --uic-surface        panel / composer background            #FFFFFF
+     --uic-line           hairline borders                       #DDDFE6
+     --uic-ink            primary text                           #111317
+     --uic-ink-2          secondary text                         #3A3D45
+     --uic-mute           tertiary / quiet text                  #5B5D66
+     --uic-brand          accent (icons, links, live dots)       #285AFF
+     --uic-brand-ink      accent pressed / dark                  #1641D8
+     --uic-brand-soft     accent border tint                     #E1E9FF
+     --uic-brand-faint    accent background tint                 #EFF3FF
+     --uic-ok             success (Done check)                   #16a34a
+     --uic-mono           monospace stack                        ui-monospace, SFMono-Regular, Menlo, monospace
+     --uic-shadow-1       card shadow                            (see below)
+     --uic-code-block-bg / --uic-code-block-ink                  #0f1117 / #e6e8ee
+     --uic-code-keyword / -string / -comment / -number / -function
+                          syntax-highlight palette (CodeBlock)   tuned for the dark block, see below
+     --uic-code-lang-ink  language label top-right of the block  #59627288
+     --uic-fail-ink/-line/-bg, --uic-cancel-ink/-line/-bg,
+     --uic-incomplete-ink/-line/-bg                              terminal badge palettes
+     --uic-font-md        message / prose base size              14px
+     --uic-turn-pad-x     horizontal padding of a message row    28px
+     --uic-bubble-max-w   user bubble max width                  80%
+     --uic-working-ink    Working… indicator text color          inherit
+   Presets: themes/light.css (.uic-light) and themes/dark.css (.uic-dark) set all of these. */
+
+/* ── message rows ─────────────────────────────────────────────────────────── */
+/* A turn fills the column; user right-aligned, assistant stacks timeline above prose. */
+.wbx-turn { display: flex; min-width: 0; padding: 0 var(--uic-turn-pad-x, 28px); }
+.wbx-turn.user { justify-content: flex-end; }
+/* assistant turn stacks vertically: activity timeline ABOVE the answer (never side by side) */
+.wbx-turn.asst { flex-direction: column; gap: 10px; align-items: stretch; }
+.wbx-bubble-user { max-width: var(--uic-bubble-max-w, 80%); background: var(--uic-brand-faint, #EFF3FF);
+  border: 1px solid var(--uic-brand-soft, #E1E9FF);
+  color: var(--uic-ink, #111317); border-radius: 16px 16px 5px 16px; padding: 10px 14px;
+  font-size: var(--uic-font-md, 14px); white-space: pre-wrap; line-height: 1.55; }
+.wbx-bubble-text { white-space: pre-wrap; }
+
+/* ── rendered markdown — proper typography, not raw text ─────────────────── */
+.wbx-md { color: var(--uic-ink, #111317); font-size: var(--uic-font-md, 14px); line-height: 1.62; min-width: 0; }
+.wbx-md > :first-child { margin-top: 0; }
+.wbx-md > :last-child { margin-bottom: 0; }
+.wbx-md p { margin: 0 0 10px; }
+.wbx-md ul, .wbx-md ol { margin: 0 0 10px; padding-left: 22px; }
+.wbx-md li { margin: 3px 0; }
+.wbx-md h1, .wbx-md h2, .wbx-md h3 { margin: 14px 0 8px; font-weight: 700; line-height: 1.3; }
+.wbx-md h1 { font-size: 18px; } .wbx-md h2 { font-size: 16px; } .wbx-md h3 { font-size: 14.5px; }
+.wbx-md code { font-family: var(--uic-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12.5px;
+  background: var(--uic-brand-faint, #EFF3FF); border: 1px solid var(--uic-line, #DDDFE6); border-radius: 5px; padding: 1px 5px; }
+.wbx-md pre { background: var(--uic-code-block-bg, #0f1117); color: var(--uic-code-block-ink, #e6e8ee);
+  border-radius: 10px; padding: 12px 14px; overflow: auto; margin: 0 0 10px; }
+.wbx-md pre code { background: none; border: none; color: inherit; padding: 0; font-size: 12.5px; line-height: 1.5; }
+/* ── CodeBlock: language-aware syntax highlighting (components/CodeBlock.jsx) ──
+   The block itself carries the same geometry as .wbx-md pre (same padding/radius/font), fully
+   styled here so it also works outside .wbx-md. hljs token classes map onto five --uic-code-*
+   colors; defaults are tuned to read on the dark --uic-code-block-bg. Light-theme consumers that
+   restyle the block re-point these five tokens alongside --uic-code-block-bg/-ink. */
+.wbx-code { position: relative; background: var(--uic-code-block-bg, #0f1117); color: var(--uic-code-block-ink, #e6e8ee);
+  border-radius: 10px; padding: 12px 14px; overflow: auto; margin: 0 0 10px;
+  font-family: var(--uic-mono, ui-monospace, SFMono-Regular, Menlo, monospace); }
+.wbx-code code { background: none; border: none; color: inherit; padding: 0; font-size: 12.5px; line-height: 1.5; }
+.wbx-code-lang { position: absolute; top: 8px; right: 12px; font-size: 10px; line-height: 1; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--uic-code-lang-ink, rgba(140, 149, 165, .75));
+  pointer-events: none; user-select: none; }
+.wbx-code .hljs-comment, .wbx-code .hljs-quote,
+.wbx-code .hljs-meta { color: var(--uic-code-comment, #8b949e); }
+.wbx-code .hljs-keyword, .wbx-code .hljs-selector-tag, .wbx-code .hljs-literal,
+.wbx-code .hljs-doctag, .wbx-code .hljs-built_in, .wbx-code .hljs-operator { color: var(--uic-code-keyword, #c678dd); }
+.wbx-code .hljs-string, .wbx-code .hljs-regexp, .wbx-code .hljs-addition,
+.wbx-code .hljs-char.escape_ { color: var(--uic-code-string, #98c379); }
+.wbx-code .hljs-number, .wbx-code .hljs-symbol, .wbx-code .hljs-bullet,
+.wbx-code .hljs-link, .wbx-code .hljs-template-variable, .wbx-code .hljs-variable.language_ { color: var(--uic-code-number, #d19a66); }
+.wbx-code .hljs-title, .wbx-code .hljs-section, .wbx-code .hljs-name,
+.wbx-code .hljs-selector-id, .wbx-code .hljs-selector-class, .wbx-code .hljs-attr,
+.wbx-code .hljs-attribute, .wbx-code .hljs-type { color: var(--uic-code-function, #61afef); }
+
+/* Mermaid diagram: light card, centered, horizontal-scroll for wide graphs (rendered by <Mermaid>). */
+.wbx-mermaid { display: block; margin: 0 0 10px; padding: 12px; overflow-x: auto; text-align: center;
+  background: var(--uic-surface, #fff); border: 1px solid var(--uic-line, #DDDFE6); border-radius: 10px; }
+.wbx-mermaid svg { max-width: 100%; height: auto; }
+.wbx-mermaid-fallback { margin: 0 0 10px; }
+.wbx-md a { color: var(--uic-brand, #285AFF); text-decoration: underline; }
+.wbx-md blockquote { margin: 0 0 10px; padding: 2px 0 2px 12px; border-left: 3px solid var(--uic-line, #DDDFE6); color: var(--uic-mute, #5B5D66); }
+.wbx-md table { border-collapse: collapse; margin: 0 0 10px; font-size: 13px; }
+.wbx-md th, .wbx-md td { border: 1px solid var(--uic-line, #DDDFE6); padding: 5px 9px; text-align: left; }
+
+/* ── loading skeleton (ChatMessagesSkeleton) ─────────────────────────────────
+   Reuses the .wbx-turn / .wbx-bubble-user / .wbx-md geometry above so streamed
+   history lands with no layout shift. display:contents hoists the skeleton turns
+   into the consumer's message column, so they inherit its inter-turn spacing
+   exactly. Bars pulse on a themeable tint (--uic-skel, falls back to the hairline
+   --uic-line) — legible on both the white assistant column and the tinted user
+   bubble, in light and dark. */
+.wbx-skel { display: contents; }
+.wbx-skel-turn { cursor: default; }
+.wbx-skel-lines { display: flex; flex-direction: column; gap: 11px; }
+.wbx-bubble-user.wbx-skel-lines { gap: 8px; }
+.wbx-skel-bar { display: block; height: 10px; border-radius: 5px;
+  background: var(--uic-skel, var(--uic-line, #DDDFE6));
+  animation: wbx-skel-pulse 1.6s ease-in-out infinite; }
+@keyframes wbx-skel-pulse { 0%, 100% { opacity: .55; } 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .wbx-skel-bar { animation: none; } }
+
+/* ── agent activity timeline: natural-language summary, typed-icon rows, Request/Result ── */
+.wbx-acts { margin: 4px 0 6px; }
+.wbx-acts-sum { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  color: var(--uic-mute, #5B5D66); background: transparent; border: none; padding: 2px 0; }
+.wbx-acts-sum:hover { color: var(--uic-ink, #111317); }
+.wbx-acts-body { margin: 10px 0 6px; display: flex; flex-direction: column; }
+/* Each row owns the connector segment: a vertical line centered on the icon column, drawn from
+   below this icon down to the next icon — so the thread runs through the icon centers. */
+.wbx-act { display: flex; gap: 11px; align-items: flex-start; position: relative; padding-bottom: 16px; }
+.wbx-act:last-child { padding-bottom: 0; }
+.wbx-act:not(:last-child)::before { content: ''; position: absolute; left: 10px; top: 22px; bottom: 0;
+  width: 1.5px; background: var(--uic-line, #DDDFE6); transform: translateX(-50%); }
+.wbx-act-ic-t { flex: 0 0 auto; width: 20px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--uic-brand, #285AFF); }
+.wbx-act-ic-t.thinking { color: var(--uic-mute, #5B5D66); }
+.wbx-act-ic-t.done { color: var(--uic-ok, #16a34a); }
+.wbx-act-main { min-width: 0; flex: 1; }
+.wbx-act-row { display: flex; align-items: center; gap: 8px; min-height: 22px; width: 100%; text-align: left; background: transparent; border: none; cursor: pointer; padding: 0; }
+.wbx-act-row:disabled { cursor: default; }
+.wbx-act-k { font-size: 13.5px; font-weight: 600; color: var(--uic-ink, #111317); }
+.wbx-act-chip { font-size: 11.5px; font-family: var(--uic-mono, ui-monospace, Menlo, monospace); color: var(--uic-ink-2, #3A3D45);
+  background: var(--uic-brand-faint, #EFF3FF); border-radius: 6px; padding: 1px 7px; }
+.wbx-act-exp { color: var(--uic-mute, #5B5D66); display: inline-flex; }
+.wbx-act-v { font-size: 12.5px; color: var(--uic-mute, #5B5D66); white-space: pre-wrap; margin-top: 3px; line-height: 1.55; }
+.wbx-act-detail { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.wbx-act-block { border: 1px solid var(--uic-line, #DDDFE6); border-radius: 10px; overflow: hidden; }
+.wbx-act-block-h { font-size: 11.5px; font-weight: 700; color: var(--uic-ink-2, #3A3D45); padding: 7px 12px 0; }
+.wbx-act-pre { margin: 0; padding: 6px 12px 12px; font-family: var(--uic-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 11.5px;
+  line-height: 1.5; color: var(--uic-ink, #111317); white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
+
+/* ── live "working" indicator: shown below the last row for the WHOLE running turn ── */
+.wbx-working { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--uic-working-ink, inherit); font-size: 13px; }
+.wbx-working-dots { display: inline-flex; gap: 4px; }
+.wbx-working-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--uic-brand, #285AFF); opacity: .4;
+  animation: wbxblink 1.4s infinite ease-in-out; }
+.wbx-working-dots span:nth-child(2) { animation-delay: .2s; } .wbx-working-dots span:nth-child(3) { animation-delay: .4s; }
+.wbx-working-txt { animation: wbxbreath 1.8s ease-in-out infinite; }
+@keyframes wbxblink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: .9; } }
+@keyframes wbxbreath { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* ── terminal-state badges on a turn (never color-only: glyph + text) ── */
+.wbx-turnbadge { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 10px;
+  border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid; }
+.wbx-turnbadge.failed { color: var(--uic-fail-ink, #b91c1c); border-color: var(--uic-fail-line, #fecaca); background: var(--uic-fail-bg, #fef2f2); }
+.wbx-turnbadge.cancelled { color: var(--uic-cancel-ink, #52525b); border-color: var(--uic-cancel-line, #e4e4e7); background: var(--uic-cancel-bg, #fafafa); }
+.wbx-turnbadge.incomplete { color: var(--uic-incomplete-ink, #92400e); border-color: var(--uic-incomplete-line, #fde68a); background: var(--uic-incomplete-bg, #fffbeb); }
+
+/* ── composer: textarea + bottom action row (attach … accessories … send) ── */
+.wbx-composer { flex-shrink: 0; margin: 0 22px 18px; border: 1px solid var(--uic-line, #DDDFE6); border-radius: 16px;
+  background: var(--uic-surface, #FFFFFF);
+  box-shadow: var(--uic-shadow-1, 0 1px 2px rgba(17,24,39,.04), 0 1px 1px rgba(17,24,39,.03)); padding: 12px 14px 10px; }
+.wbx-composer-input { width: 100%; border: none; outline: none; resize: none; font-size: var(--uic-font-md, 14px); font-family: inherit;
+  background: transparent; color: var(--uic-ink, #111317); line-height: 1.5; overflow-y: auto;
+  /* auto-grows in JS up to ~15 rows, then scrolls */
+  max-height: calc(var(--uic-font-md, 14px) * 1.5 * 15); }
+.wbx-composer-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+/* ── pane resizer (useResizablePane + PaneResizer) ── */
+.uic-vresize { flex: 0 0 7px; align-self: stretch; cursor: col-resize; background: transparent; }
+.uic-vresize:hover { background: var(--uic-brand-soft, #E1E9FF); }
+/* While dragging, neutralize embedded iframes + selection so mouseup always lands. */
+body.uic-resizing { user-select: none; cursor: col-resize; }
+body.uic-resizing iframe { pointer-events: none; }
+
+/* default send button (products usually replace via renderSend) */
+.uic-send { width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; border: none;
+  background: var(--uic-brand, #285AFF); color: #fff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; }
+.uic-send:hover:not(:disabled) { background: var(--uic-brand-ink, #1641D8); }
+.uic-send:disabled { opacity: .5; cursor: not-allowed; }

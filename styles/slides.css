@@ -1,0 +1,25 @@
+/* Shared deck renderer styles — element selection ring + the presentation
+   control pill. Element visuals come from inline styles (theme-var driven) so
+   a deck renders identically wherever SlideView is mounted. */
+.sl-el-selected { outline: 2.5px solid var(--sl-brand, #4F46E5); outline-offset: 2px; border-radius: 2px; }
+
+/* Presentation chrome: one floating pill, bottom-center. Hidden while the
+   presenter is still; fades in with the cursor on mouse move. */
+.sl-present-pill {
+  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(6px);
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+  background: rgba(16, 18, 27, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 999px;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  opacity: 0; pointer-events: none; transition: opacity 200ms ease, transform 200ms ease;
+}
+.sl-present-pill.awake { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.sl-pp-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 999px; border: none; cursor: pointer;
+  background: transparent; color: #E7EAF2;
+}
+.sl-pp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+.sl-pp-btn:disabled { opacity: 0.35; cursor: default; }
+.sl-pp-count { font-size: 12.5px; color: #B9C0CF; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.sl-pp-sep { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.14); margin: 0 2px; }
