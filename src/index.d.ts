@@ -59,16 +59,20 @@ export type Block =
   | { kind: 'text'; text: string }
   | { kind: 'tools'; reasoning: string; steps: ToolStep[] };
 
+// The transforms are generic over the caller's block type: they only ever read `kind` (and, in
+// withResult, a step's `callId`/`result`), and otherwise pass values through untouched. An app
+// with a stricter Block/ToolStep of its own keeps it, rather than having every result widened to
+// this module's shape. Block above is the DEFAULT for apps that don't declare their own.
 /** Append prose, merging into a trailing text block. */
-export function withText(blocks: Block[], delta: string): Block[];
+export function withText<B = Block>(blocks: B[], delta: string): B[];
 /** Append reasoning, merging into a trailing tools block. */
-export function withReasoning(blocks: Block[], delta: string): Block[];
+export function withReasoning<B = Block>(blocks: B[], delta: string): B[];
 /** Append a tool step, merging into a trailing tools block. */
-export function withStep(blocks: Block[], step: ToolStep): Block[];
+export function withStep<B = Block, S = ToolStep>(blocks: B[], step: S): B[];
 /** Attach a result to the pending step with this call id. */
-export function withResult(blocks: Block[], callId: string, output: unknown): Block[];
+export function withResult<B = Block>(blocks: B[], callId: string, output: unknown): B[];
 /** All prose of an assistant MESSAGE joined — takes the message, not its blocks. */
-export function asstText(message: { blocks: Block[] }): string;
+export function asstText(message: { blocks: readonly unknown[] }): string;
 
 // ── conversation store ──────────────────────────────────────────────────────
 // A tiny keyed store with a React binding: `use(key)` subscribes, `get`/`set` read and write
