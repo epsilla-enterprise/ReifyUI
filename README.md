@@ -14,8 +14,8 @@ _Reify_ — to make the abstract concrete. ReifyUI reifies an agent's intent int
 npm install reifyui
 ```
 
-> **Status: v0.1, early.** ReifyUI is an open foundation, not a finished platform. This first
-> release ships the rendering-and-interaction core described under **Today** below. The larger
+> **Status: v0.2, early.** ReifyUI is an open foundation, not a finished platform. This first
+> release line ships the rendering-and-interaction core described under **Today** below. The larger
 > vision — a component registry, agent-driven composition, and protocol interop — is on the
 > **Roadmap**, stated plainly so you can tell what runs now from what's coming. We don't ship
 > vaporware in the feature list.
@@ -43,7 +43,7 @@ surface every agent product renders through.
 
 ---
 
-## Today (v0.1) — what actually ships
+## Today — what actually ships
 
 A production-grade surface for rendering and interacting with a live agent turn:
 
