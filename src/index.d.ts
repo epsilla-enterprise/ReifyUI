@@ -81,6 +81,24 @@ export function useResizablePane(options?: Record<string, unknown>): {
 };
 export const PaneResizer: ComponentType<Record<string, unknown>>;
 
+// ── task list ───────────────────────────────────────────────────────────────
+export interface TaskListPage { items: unknown[]; cursor?: string; }
+export interface TaskListProps {
+  fetchPage: (cursor: string) => Promise<TaskListPage> | TaskListPage;
+  selected?: string | null;
+  onSelect?: (id: string) => void;
+  onNew?: () => void;
+  onDelete?: (item: any) => void;
+  header?: ReactNode;
+  renderMeta?: (item: any) => ReactNode;
+  refreshNonce?: number;
+  emptyLabel?: string;
+  newLabel?: string;
+  idKey?: string; titleKey?: string; statusKey?: string; timeKey?: string;
+}
+export const TaskList: ComponentType<TaskListProps>;
+export function taskStatusGroup(status: string): 'working' | 'done' | 'failed' | 'idle';
+
 // ── auth client (optional; couples to a /v1/auth-style backend) ──────────────
 export interface AuthConfig { engine: string; product: string; loginHash?: string; }
 export function configureAuth(cfg: Partial<AuthConfig> & { product: string; engine: string }): void;

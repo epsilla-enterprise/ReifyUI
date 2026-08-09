@@ -13,6 +13,9 @@ export { Composer } from './components/Composer.jsx';
 // same rule as mermaid for the Mermaid blocks. See components/CodeBlock.jsx.
 export { CodeBlock } from './components/CodeBlock.jsx';
 export { useResizablePane, PaneResizer } from './components/resizable.jsx';
+// Master list beside a conversation (runs/sessions): filter, status, cursor pagination.
+// Transport-agnostic — the consumer supplies fetchPage(cursor) -> {items, cursor}.
+export { TaskList, taskStatusGroup } from './components/TaskList.jsx';
 // Shared product auth (extracted from ContextualGraph): the engine /v1/auth
 // client (configureAuth({product, engine}) once at boot) + the sign-in form
 // and Google SSO button. Consumers may also deep-import './auth/*'.

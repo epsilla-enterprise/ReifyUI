@@ -1,0 +1,59 @@
+/* TaskList — master list beside a conversation. Theme-driven: every colour comes from the
+   theme variables in styles/themes/*.css, so this inherits the host app's palette. */
+.rui-tasks { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 8px; }
+.rui-tasks-header { padding: 0 2px; }
+
+.rui-tasks-new {
+  appearance: none; cursor: pointer; width: 100%;
+  padding: 9px 12px; border-radius: 8px; border: 1px solid transparent;
+  background: var(--rui-accent, #285aff); color: #fff;
+  font: inherit; font-weight: 600; font-size: 13px;
+}
+.rui-tasks-new:hover { filter: brightness(1.05); }
+
+.rui-tasks-filters { display: flex; gap: 6px; }
+.rui-tasks-search, .rui-tasks-status {
+  font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--rui-border, #e3e5e8);
+  background: var(--rui-surface, #fff); color: var(--rui-text, #1a1a1a);
+}
+.rui-tasks-search { flex: 1; min-width: 0; }
+.rui-tasks-search:focus, .rui-tasks-status:focus {
+  outline: none; border-color: var(--rui-accent, #285aff);
+}
+
+.rui-tasks-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.rui-tasks-empty { padding: 18px 10px; text-align: center; font-size: 13px; color: var(--rui-text-dim, #6b7280); }
+
+.rui-task {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 9px 10px; border-radius: 8px; border: 1px solid transparent;
+}
+.rui-task:hover { background: var(--rui-surface-hover, #f5f6f8); }
+.rui-task.is-selected {
+  background: var(--rui-surface-hover, #f5f6f8);
+  border-color: var(--rui-border, #e3e5e8);
+}
+.rui-task-main { flex: 1; min-width: 0; }
+.rui-task-title {
+  font-size: 13px; font-weight: 500; color: var(--rui-text, #1a1a1a);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rui-task-meta {
+  display: flex; align-items: center; gap: 6px; margin-top: 3px;
+  font-size: 11px; color: var(--rui-text-dim, #6b7280);
+}
+.rui-task-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rui-text-dim, #9aa1ab); flex: none; }
+.rui-task-dot.is-working { background: var(--rui-accent, #285aff); }
+.rui-task-dot.is-done    { background: var(--rui-ok, #16a34a); }
+.rui-task-dot.is-failed  { background: var(--rui-danger, #dc2626); }
+.rui-task-status { text-transform: capitalize; }
+.rui-task-time { margin-left: auto; }
+
+.rui-task-del {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  color: var(--rui-text-dim, #9aa1ab); font-size: 17px; line-height: 1;
+  padding: 2px 6px; border-radius: 6px; opacity: 0; flex: none;
+}
+.rui-task:hover .rui-task-del { opacity: 1; }
+.rui-task-del:hover { background: var(--rui-surface, #fff); color: var(--rui-danger, #dc2626); }
