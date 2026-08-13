@@ -21,7 +21,10 @@ export interface Run {
   marks?: Array<'bold' | 'italic' | 'underline' | 'code' | { link: string }>;
 }
 
-export type ElementType = 'text' | 'image' | 'shape' | 'table' | 'chart' | 'diagram' | 'code';
+// Exactly the keys of RENDERERS in elements.jsx. An unknown type renders as a grey
+// placeholder showing the type name, so getting this list wrong is a silent design bug.
+export type ElementType =
+  | 'text' | 'image' | 'chart' | 'flowchart' | 'shape' | 'table' | 'code' | 'embed';
 
 export interface SlideElement {
   id: string;
