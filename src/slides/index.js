@@ -5,6 +5,6 @@
 // components, and a root re-export would force every ui-core consumer (CG,
 // Flowness) to resolve those deps at build time. See docs/slides-architecture.md.
 export { SlideView, SlideStage, themeVars } from './SlideView.jsx';
-export { ElementView } from './elements.jsx';
+export { ElementView, ROLE_STYLE } from './elements.jsx';
 export { EditorCanvas } from './Editor.jsx';
 export { Presentation } from './Presentation.jsx';

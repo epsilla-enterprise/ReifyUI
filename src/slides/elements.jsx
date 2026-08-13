@@ -8,7 +8,11 @@ import { useEffect, useRef, useState } from 'react';
 
 // Rich-text runs → spans with marks. role drives default sizing (the stage is
 // 1920 wide, so these px sizes read correctly once the stage is scaled).
-const ROLE_STYLE = {
+//
+// Exported because anything that RE-RENDERS a deck outside the DOM — a PowerPoint or PDF
+// exporter, a server-side thumbnailer — has to apply the same defaults, and a second copy of this
+// table is a divergence waiting to happen.
+export const ROLE_STYLE = {
   title:    { fontSize: 72, fontWeight: 800, lineHeight: 1.1,  fontFamily: 'var(--sl-head)' },
   subtitle: { fontSize: 36, fontWeight: 500, lineHeight: 1.25, color: 'var(--sl-mute)' },
   body:     { fontSize: 30, fontWeight: 400, lineHeight: 1.4 },

@@ -82,6 +82,12 @@ export interface SlideViewProps extends SlideStageProps {
 /** A slide scaled to fit its container. The read-only renderer: thumbnails, previews, print. */
 export const SlideView: ComponentType<SlideViewProps>;
 
+/** Default text styling per `content.role`, in stage pixels.
+ *
+ *  Exported so anything re-rendering a deck outside the DOM (a PPTX/PDF exporter, a server-side
+ *  thumbnailer) applies the same defaults the renderer does, instead of keeping a second copy. */
+export const ROLE_STYLE: Record<string, CSSProperties & { fontSize: number }>;
+
 /** A single element, unpositioned. Exported for hosts composing their own stage. */
 export const ElementView: ComponentType<{ el: SlideElement; resolveSrc?: ResolveSrc }>;
 
