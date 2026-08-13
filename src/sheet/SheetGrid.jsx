@@ -39,6 +39,8 @@ const uid = (p) => `${p}_${Math.random().toString(36).slice(2, 10)}`;
 //   editable   defaults to !computed
 //   configKey  the column's config object for this type; dropped when the type changes
 //   badge(col) an extra header sub-label, e.g. which kind of compute this is
+//   configWidth / configHeight  how much room this type's config popover needs. A type whose
+//              config is a prompt editor does not fit in the width a Type select needs.
 const DEFAULT_COLUMN_TYPES = [
   { type: 'text', label: 'Text' },
   { type: 'number', label: 'Number' },
@@ -623,8 +625,10 @@ function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onA
     close: onClose,
   });
 
+  const desc = columnTypes.find((t) => t.type === type) || {};
   return (
-    <PopPortal anchor={anchor} width={250} estHeight={340} className="shg-menu" onClose={onClose}>
+    <PopPortal anchor={anchor} width={desc.configWidth || 250} estHeight={desc.configHeight || 340}
+               className="shg-menu" onClose={onClose}>
       <div onClick={(e) => e.stopPropagation()}>
       <label className="shg-menu-lbl">Type
         <select className="shg-menu-input" value={type} onChange={(e) => setType(e.target.value)}>

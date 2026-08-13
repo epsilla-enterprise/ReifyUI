@@ -260,6 +260,9 @@ export interface SheetColumnType {
   configKey?: string;
   /** An extra header sub-label, e.g. which kind of compute this is. */
   badge?: (column: SheetColumn) => string | undefined;
+  /** How much room this type's config popover needs. Defaults to 250 x 340. */
+  configWidth?: number;
+  configHeight?: number;
 }
 
 export interface SheetCellRenderContext {
