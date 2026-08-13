@@ -3,10 +3,13 @@
    your own token layer (see styles/chat.css for the contract). */
 .uic-light {
   --uic-surface: #FFFFFF;
+  --uic-surface-2: #F7F8FA;
   --uic-line: #DDDFE6;
+  --uic-line-soft: #EFF1F4;
   --uic-ink: #111317;
   --uic-ink-2: #3A3D45;
   --uic-mute: #5B5D66;
+  --uic-mute-2: #8E9199;
   --uic-brand: #285AFF;
   --uic-brand-ink: #1641D8;
   --uic-brand-soft: #E1E9FF;

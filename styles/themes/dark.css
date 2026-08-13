@@ -3,10 +3,13 @@
    overriding individual tokens after this import. */
 .uic-dark {
   --uic-surface: #1E1F24;
+  --uic-surface-2: #26272D;
   --uic-line: #33353D;
+  --uic-line-soft: #2A2C33;
   --uic-ink: #F2F3F7;
   --uic-ink-2: #C9CCD6;
   --uic-mute: #8B8F9C;
+  --uic-mute-2: #6E7280;
   --uic-brand: #7C9AFF;
   --uic-brand-ink: #A3B8FF;
   --uic-brand-soft: rgba(124, 154, 255, .32);

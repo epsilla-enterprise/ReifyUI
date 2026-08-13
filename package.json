@@ -1,6 +1,6 @@
 {
   "name": "reifyui",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI \u2014 model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
   "keywords": [
     "react",
@@ -40,6 +40,11 @@
       "types": "./dist/slides.d.ts",
       "import": "./dist/slides.js",
       "require": "./dist/slides.cjs"
+    },
+    "./harness": {
+      "types": "./dist/harness.d.ts",
+      "import": "./dist/harness.js",
+      "require": "./dist/harness.cjs"
     },
     "./styles/*": "./styles/*",
     "./package.json": "./package.json"

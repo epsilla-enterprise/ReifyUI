@@ -1,60 +1,65 @@
-/* SheetGrid — shared spreadsheet grid styles (UI Core). Product-neutral;
-   uses --brand/--line/etc tokens so each host (Sheets, studio Spaces) themes
-   it with its own palette. */
+/* SheetGrid — shared spreadsheet grid styles. Product-neutral: every colour comes from a
+   --uic-* token, so a host themes the grid by setting the same tokens the chat surface reads
+   (styles/themes/light.css or dark.css, or your own layer).
+
+   These used to be unprefixed (--brand, --line, --ink…), which no theme in this package defines
+   — so an import without a token layer fell through to the inline fallbacks, and those disagreed
+   with each other: 15 rules said --brand was emerald and 7 said teal. The result was a two-tone
+   grid. One token, one fallback, and the fallbacks now match the library's own palette. */
 .shg { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .shg-scroll { flex: 1; min-height: 0; overflow: auto; }
 .shg-table { border-collapse: collapse; font-size: 13px; width: max-content; min-width: 100%; }
 
 .shg-table th, .shg-table td {
-  border: 1px solid var(--line, #E5E7EB);
+  border: 1px solid var(--uic-line, #DDDFE6);
   padding: 0; height: 34px; box-sizing: border-box;
 }
 .shg-corner, .shg-rownum {
-  background: var(--surface-2, #FAFBFD);
-  text-align: center; color: var(--mute-2, #9CA3AF); font-variant-numeric: tabular-nums;
+  background: var(--uic-surface-2, #F7F8FA);
+  text-align: center; color: var(--uic-mute-2, #8E9199); font-variant-numeric: tabular-nums;
   position: sticky; left: 0; z-index: 3;
 }
 .shg-corner { z-index: 6; }
 .shg-rownum span { font-size: 11px; }
 .shg-rowdel {
   position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
-  border: none; background: transparent; color: var(--mute-2, #9CA3AF);
+  border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
   cursor: pointer; font-size: 14px; line-height: 1; opacity: 0; padding: 2px;
 }
 .shg-table tr:hover .shg-rowdel { opacity: 1; }
 
-.shg-col { min-width: 180px; max-width: 420px; background: var(--surface, #fff); position: sticky; top: 0; z-index: 4; }
-.shg-col-compute { background: var(--brand-50, #ECFEFF); }
+.shg-col { min-width: 180px; max-width: 420px; background: var(--uic-surface, #FFFFFF); position: sticky; top: 0; z-index: 4; }
+.shg-col-compute { background: var(--uic-brand-faint, #EFF3FF); }
 .shg-col-h { padding: 6px 10px; }
 .shg-colhdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .shg-colhdr-main { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
-.shg-colname { font-weight: 600; color: var(--ink, #111827); cursor: default;
+.shg-colname { font-weight: 600; color: var(--uic-ink, #111317); cursor: default;
                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-.shg-colname-input { font-weight: 600; font-size: 13px; border: 1px solid var(--brand, #0E7490);
+.shg-colname-input { font-weight: 600; font-size: 13px; border: 1px solid var(--uic-brand, #285AFF);
                      border-radius: 4px; padding: 1px 4px; width: 150px; font-family: inherit; }
-.shg-coltype { font-size: 10px; color: var(--mute, #6B7280); text-transform: uppercase; letter-spacing: .03em; }
-.shg-coltype.compute { color: var(--brand, #0E7490); font-weight: 600; }
+.shg-coltype { font-size: 10px; color: var(--uic-mute, #5B5D66); text-transform: uppercase; letter-spacing: .03em; }
+.shg-coltype.compute { color: var(--uic-brand, #285AFF); font-weight: 600; }
 .shg-colhdr-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .shg-colrun {
-  font-size: 11px; font-weight: 600; color: var(--brand, #0E7490);
-  background: var(--surface, #fff); border: 1px solid var(--brand-soft, #CFFAFE);
+  font-size: 11px; font-weight: 600; color: var(--uic-brand, #285AFF);
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-brand-soft, #E1E9FF);
   border-radius: 6px; padding: 2px 8px; cursor: pointer; white-space: nowrap;
 }
-.shg-colrun:hover { background: var(--brand-50, #ECFEFF); }
+.shg-colrun:hover { background: var(--uic-brand-faint, #EFF3FF); }
 .shg-coldel, .shg-add {
-  border: none; background: transparent; color: var(--mute-2, #9CA3AF);
+  border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
   cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 5px; border-radius: 4px;
 }
-.shg-coldel:hover { background: var(--hot-soft, #FEE4E4); color: #B91C1C; }
-.shg-add:hover { background: var(--line-soft, #EFF1F4); color: var(--ink, #111827); }
-.shg-add-col { width: auto; min-width: 40px; text-align: left; background: var(--surface, #fff); position: sticky; top: 0; z-index: 4; }
+.shg-coldel:hover { background: var(--uic-fail-bg, #FEF2F2); color: #B91C1C; }
+.shg-add:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
+.shg-add-col { width: auto; min-width: 40px; text-align: left; background: var(--uic-surface, #FFFFFF); position: sticky; top: 0; z-index: 4; }
 
-.shg-cell { cursor: text; background: var(--surface, #fff); }
+.shg-cell { cursor: text; background: var(--uic-surface, #FFFFFF); }
 .shg-cell-compute { cursor: default; }
-.shg-cell:hover { background: var(--surface-2, #FAFBFD); }
+.shg-cell:hover { background: var(--uic-surface-2, #F7F8FA); }
 .shg-val { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 100%; }
 .shg-val-txt {
-  flex: 1; min-width: 0; color: var(--ink, #111827);
+  flex: 1; min-width: 0; color: var(--uic-ink, #111317);
   /* Wrap to the row's height; the last visible line ellipsizes. Rows at the
      default height clamp to one line (classic sheet behavior); taller rows
      show more lines. --shg-clamp is set per row from its height. */
@@ -63,10 +68,10 @@
   overflow: hidden; white-space: normal; word-break: break-word;
   line-height: 18px;
 }
-.shg-input { width: 100%; height: 100%; border: 2px solid var(--brand, #0E7490); padding: 0 8px;
+.shg-input { width: 100%; height: 100%; border: 2px solid var(--uic-brand, #285AFF); padding: 0 8px;
              font-size: 13px; font-family: inherit; outline: none; box-sizing: border-box; }
 .shg-runcell {
-  border: none; background: transparent; color: var(--brand, #0E7490); cursor: pointer;
+  border: none; background: transparent; color: var(--uic-brand, #285AFF); cursor: pointer;
   font-size: 10px; opacity: 0; flex-shrink: 0; padding: 2px 4px;
 }
 .shg-cell:hover .shg-runcell { opacity: 1; }
@@ -75,7 +80,7 @@
 .shg-cell-running { background: #EFF6FF; }
 .shg-cell-failed  { background: #FEF2F2; }
 .shg-cell-skipped { opacity: .6; }
-.shg-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; background: var(--mute-2, #9CA3AF); }
+.shg-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; background: var(--uic-mute-2, #8E9199); }
 .shg-dot-running   { background: #2563EB; animation: shg-pulse 1s ease-in-out infinite; }
 .shg-dot-done      { background: #10B981; }
 .shg-dot-failed    { background: #EF4444; }
@@ -84,10 +89,10 @@
 
 .shg-add-row {
   align-self: flex-start; margin: 8px; padding: 6px 14px; border-radius: 8px;
-  border: 1px dashed var(--line, #E5E7EB); background: var(--surface, #fff);
-  color: var(--mute, #6B7280); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  border: 1px dashed var(--uic-line, #DDDFE6); background: var(--uic-surface, #FFFFFF);
+  color: var(--uic-mute, #5B5D66); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.shg-add-row:hover { border-color: var(--brand, #0E7490); color: var(--brand, #0E7490); }
+.shg-add-row:hover { border-color: var(--uic-brand, #285AFF); color: var(--uic-brand, #285AFF); }
 
 /* ── Typed cell values ─────────────────────────────────────────────────── */
 .shg-pill {
@@ -98,12 +103,12 @@
 .shg-pills { display: flex; gap: 4px; overflow: hidden; flex: 1; min-width: 0;
               flex-wrap: wrap; max-height: 100%; align-content: center; }
 .shg-check {
-  width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line, #D1D5DB);
+  width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--uic-line, #DDDFE6);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff; background: var(--surface, #fff);
+  font-size: 12px; font-weight: 700; color: #fff; background: var(--uic-surface, #FFFFFF);
 }
-.shg-check.on { background: var(--brand, #059669); border-color: var(--brand, #059669); }
-.shg-link { color: var(--brand, #059669); text-decoration: none; overflow: hidden;
+.shg-check.on { background: var(--uic-brand, #285AFF); border-color: var(--uic-brand, #285AFF); }
+.shg-link { color: var(--uic-brand, #285AFF); text-decoration: none; overflow: hidden;
             text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 .shg-link:hover { text-decoration: underline; }
 .shg-num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -111,53 +116,53 @@
 /* Select cell popover (click a pill to set) */
 .shg-select-pop {
   position: absolute; z-index: 30; margin-top: 2px; min-width: 160px;
-  background: var(--surface, #fff); border: 1px solid var(--line, #E5E7EB);
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
   border-radius: 10px; box-shadow: 0 12px 28px -8px rgba(15,23,42,.18);
   padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
 }
 .shg-pill-btn { border: none; cursor: pointer; font-family: inherit; }
 .shg-pill-btn:hover { filter: brightness(.95); }
 .shg-pop-clear, .shg-pop-note {
-  font-size: 11.5px; color: var(--mute, #6B7280); border: none; background: transparent;
+  font-size: 11.5px; color: var(--uic-mute, #5B5D66); border: none; background: transparent;
   cursor: pointer; padding: 2px 4px; font-family: inherit;
 }
-.shg-pop-clear:hover { color: var(--ink, #111827); }
+.shg-pop-clear:hover { color: var(--uic-ink, #111317); }
 .shg-cell { position: relative; }
 
 /* ── Column config menu ────────────────────────────────────────────────── */
 .shg-colhdr { position: relative; }
 .shg-colmenu-btn {
-  border: none; background: transparent; color: var(--mute-2, #9CA3AF);
+  border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
   cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 6px; border-radius: 5px;
 }
-.shg-colmenu-btn:hover { background: var(--line-soft, #EFF1F4); color: var(--ink, #111827); }
+.shg-colmenu-btn:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
 .shg-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 40; width: 250px;
-  background: var(--surface, #fff); border: 1px solid var(--line, #E5E7EB);
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
   border-radius: 12px; box-shadow: 0 16px 40px -10px rgba(15,23,42,.22);
   padding: 12px; display: flex; flex-direction: column; gap: 10px;
   font-weight: 400; text-align: left; cursor: default;
 }
 .shg-menu-lbl { display: flex; flex-direction: column; gap: 4px; font-size: 11px;
-                font-weight: 600; color: var(--mute, #6B7280); }
+                font-weight: 600; color: var(--uic-mute, #5B5D66); }
 .shg-menu-input {
-  font-family: inherit; font-size: 12.5px; font-weight: 400; color: var(--ink, #111827);
-  border: 1px solid var(--line, #E5E7EB); border-radius: 7px; padding: 5px 8px;
-  background: var(--surface, #fff); resize: vertical;
+  font-family: inherit; font-size: 12.5px; font-weight: 400; color: var(--uic-ink, #111317);
+  border: 1px solid var(--uic-line, #DDDFE6); border-radius: 7px; padding: 5px 8px;
+  background: var(--uic-surface, #FFFFFF); resize: vertical;
 }
-.shg-menu-input:focus { outline: none; border-color: var(--brand, #059669); }
+.shg-menu-input:focus { outline: none; border-color: var(--uic-brand, #285AFF); }
 .shg-menu-deps { display: flex; flex-direction: column; gap: 3px; margin-top: 3px;
                  max-height: 110px; overflow: auto; }
 .shg-menu-dep { display: flex; align-items: center; gap: 6px; font-size: 12px;
-                font-weight: 400; color: var(--ink-2, #374151); cursor: pointer; }
+                font-weight: 400; color: var(--uic-ink-2, #3A3D45); cursor: pointer; }
 .shg-menu-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
 .shg-menu-del {
   border: none; background: transparent; color: #B91C1C; font-size: 12px; font-weight: 600;
   cursor: pointer; padding: 5px 8px; border-radius: 7px; font-family: inherit;
 }
-.shg-menu-del:hover { background: var(--hot-soft, #FEE4E4); }
+.shg-menu-del:hover { background: var(--uic-fail-bg, #FEF2F2); }
 .shg-menu-apply {
-  border: none; background: var(--brand, #059669); color: #fff; font-size: 12.5px;
+  border: none; background: var(--uic-brand, #285AFF); color: #fff; font-size: 12.5px;
   font-weight: 600; cursor: pointer; padding: 6px 16px; border-radius: 8px; font-family: inherit;
 }
 .shg-menu-apply:hover { filter: brightness(1.06); }
@@ -168,32 +173,32 @@
   position: absolute; top: 0; right: -3px; width: 7px; height: 100%;
   cursor: col-resize; z-index: 5;
 }
-.shg-resize-col:hover { background: var(--brand-soft, #A7F3D0); opacity: .7; }
+.shg-resize-col:hover { background: var(--uic-brand-soft, #E1E9FF); opacity: .7; }
 .shg-resize-row {
   position: absolute; left: 0; bottom: 0; height: 6px; width: 100%;
   cursor: row-resize; z-index: 5;
 }
-.shg-resize-row:hover { background: var(--brand-soft, #A7F3D0); opacity: .7; }
+.shg-resize-row:hover { background: var(--uic-brand-soft, #E1E9FF); opacity: .7; }
 .shg-cell, .shg-rownum { overflow: hidden; }
 
 /* ── Ghost add-row (Airtable-style, attached to the grid) ───────────────── */
 .shg-ghost-row { cursor: pointer; }
-.shg-ghost-row td { border-color: var(--line, #E5E7EB); background: var(--surface, #fff); }
-.shg-ghost-num { color: var(--mute-2, #9CA3AF); font-size: 15px !important; }
-.shg-ghost-cell { color: var(--mute-2, #9CA3AF); font-size: 12.5px; padding: 0 10px !important; }
-.shg-ghost-row:hover td { background: var(--brand-50, #ECFDF5); }
-.shg-ghost-row:hover .shg-ghost-num, .shg-ghost-row:hover .shg-ghost-cell { color: var(--brand, #059669); }
+.shg-ghost-row td { border-color: var(--uic-line, #DDDFE6); background: var(--uic-surface, #FFFFFF); }
+.shg-ghost-num { color: var(--uic-mute-2, #8E9199); font-size: 15px !important; }
+.shg-ghost-cell { color: var(--uic-mute-2, #8E9199); font-size: 12.5px; padding: 0 10px !important; }
+.shg-ghost-row:hover td { background: var(--uic-brand-faint, #EFF3FF); }
+.shg-ghost-row:hover .shg-ghost-num, .shg-ghost-row:hover .shg-ghost-cell { color: var(--uic-brand, #285AFF); }
 
 /* ── Resource refs ──────────────────────────────────────────────────────── */
 .shg-refimg { max-height: 60px; max-width: 100%; border-radius: 6px; display: block; padding: 3px 0; }
 .shg-refchip {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
   padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  background: var(--surface-2, #F3F4F6); color: var(--ink-2, #374151);
-  border: 1px solid var(--line, #E5E7EB); white-space: nowrap;
+  background: var(--uic-surface-2, #F7F8FA); color: var(--uic-ink-2, #3A3D45);
+  border: 1px solid var(--uic-line, #DDDFE6); white-space: nowrap;
 }
 .shg-refchip-btn { cursor: pointer; font-family: inherit; }
-.shg-refchip-btn:hover { border-color: var(--brand, #059669); color: var(--brand, #059669); }
+.shg-refchip-btn:hover { border-color: var(--uic-brand, #285AFF); color: var(--uic-brand, #285AFF); }
 .shg-refchip-ic { font-size: 12px; }
 .shg-refchip-name { overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 .shg-ref-pop { min-width: 220px; }
@@ -207,28 +212,28 @@
 /* ── Bottom tab bar (Google-Sheets style; rendered by the host product) ── */
 .shg-tabs {
   display: flex; align-items: center; gap: 2px; flex-shrink: 0;
-  border-top: 1px solid var(--line, #E5E7EB); background: var(--surface-2, #FAFBFD);
+  border-top: 1px solid var(--uic-line, #DDDFE6); background: var(--uic-surface-2, #F7F8FA);
   padding: 0 8px; height: 38px; overflow-x: auto;
 }
 .shg-tab-add {
-  border: none; background: transparent; color: var(--mute, #6B7280);
+  border: none; background: transparent; color: var(--uic-mute, #5B5D66);
   font-size: 17px; cursor: pointer; padding: 2px 10px; border-radius: 7px; line-height: 1;
 }
-.shg-tab-add:hover { background: var(--line-soft, #EFF1F4); color: var(--ink, #111827); }
+.shg-tab-add:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
 .shg-tab {
   display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
-  background: transparent; color: var(--ink-2, #374151); font-size: 13px; font-weight: 600;
+  background: transparent; color: var(--uic-ink-2, #3A3D45); font-size: 13px; font-weight: 600;
   font-family: inherit; padding: 8px 14px; border-radius: 8px 8px 0 0; white-space: nowrap;
   border-bottom: 2.5px solid transparent;
 }
-.shg-tab:hover { background: var(--line-soft, #EFF1F4); }
-.shg-tab.active { color: var(--brand, #059669); background: var(--surface, #fff);
-                  border-bottom-color: var(--brand, #059669); }
+.shg-tab:hover { background: var(--uic-line-soft, #EFF1F4); }
+.shg-tab.active { color: var(--uic-brand, #285AFF); background: var(--uic-surface, #FFFFFF);
+                  border-bottom-color: var(--uic-brand, #285AFF); }
 .shg-tab-name-input {
-  font: inherit; font-weight: 600; width: 110px; border: 1px solid var(--brand, #059669);
+  font: inherit; font-weight: 600; width: 110px; border: 1px solid var(--uic-brand, #285AFF);
   border-radius: 5px; padding: 1px 6px;
 }
-.shg-tab-del { border: none; background: transparent; color: var(--mute-2, #9CA3AF);
+.shg-tab-del { border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
                cursor: pointer; font-size: 13px; padding: 0 2px; opacity: 0; }
 .shg-tab:hover .shg-tab-del { opacity: 1; }
 .shg-tab-del:hover { color: #B91C1C; }
@@ -238,10 +243,10 @@
 .shg-rownum:active { cursor: grabbing; }
 .shg-col[draggable="true"] { cursor: grab; }
 .shg-dragging { opacity: .45; }
-.shg-drop-before { box-shadow: inset 3px 0 0 var(--brand, #059669); }
-.shg-drop-after  { box-shadow: inset -3px 0 0 var(--brand, #059669); }
-.shg-drop-above  { box-shadow: inset 0 3px 0 var(--brand, #059669); }
-.shg-drop-below  { box-shadow: inset 0 -3px 0 var(--brand, #059669); }
+.shg-drop-before { box-shadow: inset 3px 0 0 var(--uic-brand, #285AFF); }
+.shg-drop-after  { box-shadow: inset -3px 0 0 var(--uic-brand, #285AFF); }
+.shg-drop-above  { box-shadow: inset 0 3px 0 var(--uic-brand, #285AFF); }
+.shg-drop-below  { box-shadow: inset 0 -3px 0 var(--uic-brand, #285AFF); }
 
 /* ── Presence: a peer is editing this cell ──────────────────────────────── */
 .shg-cell-peer { position: relative; }
@@ -256,7 +261,7 @@
       (Google-Docs style: same scale, slight overlap, white ring) ─────────── */
 .sh-people { display: flex; align-items: center; }
 .sh-people .sh-peer-dot {
-  border: 2px solid var(--surface, #fff); margin-right: -7px;
+  border: 2px solid var(--uic-surface, #FFFFFF); margin-right: -7px;
   text-transform: uppercase; cursor: default; position: relative; z-index: 1;
 }
 .sh-people .av:last-child { margin-right: 0; position: relative; z-index: 2; }

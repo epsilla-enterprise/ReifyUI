@@ -56,7 +56,8 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
 | **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
 | **Slides** (`reifyui/slides`) | `SlideView`, `SlideStage`, `EditorCanvas`, `Presentation`, `ElementView`, `themeVars` — render a JSON deck, edit it by direct manipulation, present it |
-| **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid |
+| **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid, extensible with your own column types |
+| **HarnessRouter** (`reifyui/harness`) | `configureKit`, `kitHarness`, `listSessions`, `readFile`, `writeFile`, `createResponse`, `streamTurn`, `turnsToMessages` — the transport for apps served by a HarnessRouter console |
 | **Icons / tool meta** | `Ic*` icon set, `toolMeta`, `humanize`, `summarizeSteps` |
 | **Auth (optional)** | `configureAuth`, `login`, `AuthForm`, `GoogleButton` — a thin JWT client for products with a `/v1/auth`-style backend; wired to nothing by default |
 
@@ -185,6 +186,42 @@ Because every commit leaves as a typed patch, undo, autosave and collaboration s
 belong — with the host. Pass `peers` to draw other people's selections and live drags, and
 `onDragState` to broadcast your own. `resolveSrc` rewrites element `src` values on the way out, so
 workspace-relative image paths can point at your own file API.
+
+## Spreadsheet
+
+`SheetGrid` renders a sheet JSON and calls back for edits. Its column vocabulary is a prop, so a
+host adds a column kind without forking the component:
+
+```jsx
+import { SheetGrid } from 'reifyui';
+import 'reifyui/styles/sheet.css';
+
+const COLUMN_TYPES = [
+  { type: 'text', label: 'Text' },
+  { type: 'number', label: 'Number' },
+  // `computed` means the app fills these cells: status dot, tint, run affordances.
+  { type: 'agent', label: 'Agent', computed: true, configKey: 'agent',
+    badge: (col) => col.agent?.name },
+];
+
+<SheetGrid
+  sheet={sheet}
+  onChange={setSheet}
+  columnTypes={COLUMN_TYPES}
+  // Own a cell's body. Return undefined to fall through to the built-in rendering.
+  renderCell={({ column, cell, runCell }) =>
+    (column.type === 'agent' ? <AgentCell cell={cell} onRun={runCell} /> : undefined)}
+  // Own the column popover's body, below the Type select. applyPatch commits and closes.
+  renderColumnConfig={({ type, column, columns, applyPatch }) =>
+    (type === 'agent' ? <AgentConfig column={column} columns={columns} onApply={applyPatch} /> : undefined)}
+/>
+```
+
+`sheetToDelimited(sheet, sep, { cellText })` and `sheetToAoA(sheet, { cellText })` export the grid;
+pass `cellText` so a custom column exports as something a person wants rather than as raw JSON.
+
+All colours come from `--uic-*` tokens — apply `styles/themes/light.css` or `dark.css`, or set the
+same tokens in your own layer.
 
 ## Optional: auth client
 

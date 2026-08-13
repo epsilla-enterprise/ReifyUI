@@ -229,6 +229,87 @@ export const GoogleButton: ComponentType<Record<string, unknown>>;
 export const GOOGLE_ENABLED: boolean;
 
 // ── AI spreadsheet grid ──────────────────────────────────────────────────────
-export const SheetGrid: ComponentType<Record<string, unknown>>;
-export function sheetToDelimited(sheet: unknown, delimiter?: string): string;
-export function sheetToAoA(sheet: unknown): unknown[][];
+export interface SheetColumn {
+  id: string;
+  name: string;
+  type: string;
+  width?: number;
+  options?: Array<string | { label?: string; value?: unknown; color?: string }>;
+  [key: string]: unknown;
+}
+export interface SheetRow { id: string; height?: number; [key: string]: unknown }
+export interface SheetCell { value?: unknown; status?: string; error?: string | null; [key: string]: unknown }
+export interface Sheet {
+  meta?: { title?: string; [key: string]: unknown };
+  columns?: SheetColumn[];
+  rows?: SheetRow[];
+  cells?: Record<string, SheetCell>;
+  [key: string]: unknown;
+}
+
+/** One entry in the grid's column vocabulary. A host adds a column kind by adding a descriptor
+ *  — the grid has no hardcoded knowledge of any type beyond its own defaults. */
+export interface SheetColumnType {
+  type: string;
+  label: string;
+  /** The app fills these cells: status dot, tint, and run affordances. */
+  computed?: boolean;
+  /** Defaults to !computed. */
+  editable?: boolean;
+  /** The column key holding this type's config; dropped when the type changes. */
+  configKey?: string;
+  /** An extra header sub-label, e.g. which kind of compute this is. */
+  badge?: (column: SheetColumn) => string | undefined;
+}
+
+export interface SheetCellRenderContext {
+  cell: SheetCell;
+  column: SheetColumn;
+  row: SheetRow;
+  rowIndex: number;
+  sheet: Sheet;
+  computed: boolean;
+  width?: number;
+  height?: number;
+  editing: boolean;
+  readOnly: boolean;
+  setCell: (value: unknown) => void;
+  runCell: (() => void) | null;
+}
+
+export interface SheetColumnConfigContext {
+  column: SheetColumn;
+  columns: SheetColumn[];
+  /** The type currently selected in the popover, which may differ from column.type. */
+  type: string;
+  /** Commit the column patch and close the popover. */
+  applyPatch: (patch: Record<string, unknown>) => void;
+  deleteColumn: () => void;
+  close: () => void;
+}
+
+export interface SheetGridProps {
+  sheet: Sheet;
+  onChange?: (next: Sheet) => void;
+  onRunCell?: (rowId: string, colId: string) => void;
+  onRunColumn?: (colId: string) => void;
+  readOnly?: boolean;
+  fetchBlobUrl?: (path: string) => Promise<string>;
+  onOpenResource?: (ref: Record<string, unknown>) => void;
+  peerMarks?: Record<string, { name: string; color: string }>;
+  onActiveCell?: (cellKey: string | null) => void;
+  columnTypes?: SheetColumnType[];
+  /** Replace a cell's body. Return undefined to fall through to the built-in rendering. */
+  renderCell?: (ctx: SheetCellRenderContext) => ReactNode | undefined;
+  /** Replace the column popover's body. Return undefined to fall through. */
+  renderColumnConfig?: (ctx: SheetColumnConfigContext) => ReactNode | undefined;
+}
+export const SheetGrid: ComponentType<SheetGridProps>;
+
+/** cellText says what one cell is worth in a flat file — without it, a cell holding an object
+ *  exports as raw JSON. */
+export interface SheetExportOptions {
+  cellText?: (cell: SheetCell | undefined, column: SheetColumn) => string | number | boolean;
+}
+export function sheetToDelimited(sheet: Sheet, delimiter?: string, options?: SheetExportOptions): string;
+export function sheetToAoA(sheet: Sheet, options?: SheetExportOptions): unknown[][];
