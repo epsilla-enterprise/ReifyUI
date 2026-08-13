@@ -55,7 +55,7 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Rich blocks** | `CodeBlock` (highlight.js + mermaid + charts), `useResizablePane`, `PaneResizer` |
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
 | **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
-| **Slides** | a slide renderer/editor + `reifyui/styles/slides.css` |
+| **Slides** (`reifyui/slides`) | `SlideView`, `SlideStage`, `EditorCanvas`, `Presentation`, `ElementView`, `themeVars` — render a JSON deck, edit it by direct manipulation, present it |
 | **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid |
 | **Icons / tool meta** | `Ic*` icon set, `toolMeta`, `humanize`, `summarizeSteps` |
 | **Auth (optional)** | `configureAuth`, `login`, `AuthForm`, `GoogleButton` — a thin JWT client for products with a `/v1/auth`-style backend; wired to nothing by default |
@@ -150,6 +150,41 @@ import 'reifyui/styles/dialog.css';        // alert / confirm / prompt dialogs
 
 Themes are CSS-variable files — load one, or switch at runtime by toggling which you apply. Override
 the variables to match your design system.
+
+## Slides
+
+A deck is JSON — a fixed 1920×1080 stage, and elements with absolute frames and stable ids. That
+makes it something an agent can author and patch precisely, and something you can render, edit and
+present from the same components.
+
+Imported from **`reifyui/slides`**, not the root: chart, diagram and code elements lazy-load
+echarts, mermaid and highlight.js, and a root re-export would put all three in the dependency graph
+of every app that imports a `Button`.
+
+```jsx
+import { SlideView, EditorCanvas, Presentation } from 'reifyui/slides';
+import 'reifyui/styles/slides.css';
+
+// Read-only: thumbnails, previews, print pages.
+<SlideView slide={deck.slides[0]} theme={deck.theme} bare />
+
+// Editable: drag to move, corner handles to resize, double-click to edit text,
+// Delete to remove, arrows to nudge. The canvas never mutates the deck — you do.
+<EditorCanvas
+  slide={deck.slides[i]}
+  theme={deck.theme}
+  selectedId={selected}
+  onSelect={setSelected}
+  onPatchElement={(id, patch) => setDeck((d) => patchElement(d, i, id, patch))}
+  onDeleteElement={(id) => setDeck((d) => removeElement(d, i, id))}
+  readOnly={agentIsWriting}
+/>
+```
+
+Because every commit leaves as a typed patch, undo, autosave and collaboration stay where they
+belong — with the host. Pass `peers` to draw other people's selections and live drags, and
+`onDragState` to broadcast your own. `resolveSrc` rewrites element `src` values on the way out, so
+workspace-relative image paths can point at your own file API.
 
 ## Optional: auth client
 

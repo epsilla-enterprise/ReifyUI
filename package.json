@@ -36,6 +36,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./slides": {
+      "types": "./dist/slides.d.ts",
+      "import": "./dist/slides.js",
+      "require": "./dist/slides.cjs"
+    },
     "./styles/*": "./styles/*",
     "./package.json": "./package.json"
   },

@@ -7,7 +7,11 @@ import { defineConfig } from 'tsup';
 // Types are hand-authored in src/index.d.ts (the source is JSX, not TS, so there is
 // nothing to infer from) and copied to dist by the onSuccess step.
 export default defineConfig({
-  entry: { index: 'src/index.js' },
+  // `slides` is a SEPARATE entry, not part of the root index, and that is deliberate: the deck
+  // renderer lazy-loads echarts / mermaid / highlight.js for chart, diagram and code elements.
+  // Re-exporting it from the root would put those three in the dependency graph of every app that
+  // imports a Button. Consumers reach it at `reifyui/slides`.
+  entry: { index: 'src/index.js', slides: 'src/slides/index.js' },
   format: ['esm', 'cjs'],
   target: 'es2020',
   platform: 'browser',
@@ -18,5 +22,5 @@ export default defineConfig({
   esbuildOptions(options) {
     options.jsx = 'automatic';
   },
-  onSuccess: 'cp src/index.d.ts dist/index.d.ts',
+  onSuccess: 'cp src/index.d.ts dist/index.d.ts && cp src/slides/index.d.ts dist/slides.d.ts',
 });
