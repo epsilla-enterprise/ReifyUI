@@ -1,0 +1,205 @@
+/* The library page — the surface a document product opens on: a prompt box, a strip of
+   templates, and the things you already made.
+
+   190 selectors of this were byte-identical across four products' app.css files (189 of them to
+   the byte, after whitespace normalisation), under names owned by whichever product wrote them
+   first. Adopting this file is meant to DELETE those copies, not to be overridden by them: if
+   every caller would pass the same override string, that string was the default.
+
+   Only some of these have components in the package (Carousel, Card, SearchField, Chip). The
+   rest are structure a page composes directly — a shell, a hero, a table — where a component
+   would have been an `as` prop and an `id` prop wrapping one flex div.
+
+   Token contract: styles/chat.css, plus --uic-bg, --uic-shadow-2, --uic-focus-ring,
+   --uic-r-card/-input/-pill, --uic-line-strong, --uic-hover-wash, --uic-on-brand.
+   Presets: themes/light.css / themes/dark.css define all of them. */
+
+/* ── shell + topbar ─────────────────────────────────────────────────────────
+   The topbar is a PAGE-level bar and belongs to the shell, not to the content column. One app
+   nested it inside its 1080px centred column and shipped a floating white slab with square
+   corners inset 204px from each edge. */
+.uic-shell { min-height: 100vh; display: flex; flex-direction: column;
+  background: var(--uic-bg, #F7F8FB); }
+.uic-topbar { height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  padding: 0 20px; position: sticky; top: 0; z-index: 30;
+  background: var(--uic-surface, #FFFFFF); border-bottom: 1px solid var(--uic-line, #DDDFE6); }
+.uic-topbar-spacer { flex: 1; }
+.uic-wordmark { display: inline-flex; align-items: center; gap: 8px; padding: 0;
+  font-family: inherit; font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--uic-brand, #285AFF); text-decoration: none;
+  background: none; border: none; cursor: pointer; }
+
+/* ── the page column ── */
+.uic-page { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 24px 64px; }
+.uic-hero { padding: 64px 0 36px; text-align: center; }
+.uic-hero h1 { margin: 0 0 10px; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--uic-ink, #111317); }
+.uic-hero p { margin: 0 0 26px; font-size: 15px; color: var(--uic-mute, #5B5D66); }
+.uic-hero .uic-hint { display: block; font-size: 12.5px; color: var(--uic-mute, #5B5D66); }
+
+/* ── prompt box: the big chatbox that starts a document ── */
+.uic-promptbox { max-width: 720px; margin: 0 auto; padding: 14px 14px 10px; text-align: left;
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--uic-surface, #FFFFFF); border: 1.5px solid var(--uic-line, #DDDFE6);
+  border-radius: 18px; box-shadow: var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .12)); }
+.uic-promptbox:focus-within { border-color: var(--uic-brand, #285AFF);
+  box-shadow: 0 0 0 4px var(--uic-focus-ring, rgba(40, 90, 255, .14)),
+              var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .12)); }
+.uic-promptbox-input { border: none; outline: none; resize: none; font-family: inherit;
+  font-size: 15px; line-height: 1.55; min-height: 66px;
+  color: var(--uic-ink, #111317); background: transparent; }
+.uic-promptbox-input::placeholder { color: var(--uic-mute-2, #8E9199); }
+/* Wraps, so several chips flow onto extra rows instead of pushing the send button off. */
+.uic-promptbox-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ── section header ── */
+.uic-section { margin-top: 40px; }
+.uic-section-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.uic-section-h h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--uic-ink, #111317); }
+.uic-section-h .uic-hint { font-size: 12.5px; color: var(--uic-mute, #5B5D66); }
+.uic-section-tools { display: flex; align-items: center; gap: 8px; }
+
+/* ── SearchField ── */
+.uic-search { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+  border-radius: var(--uic-r-input, 8px);
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  color: var(--uic-mute, #5B5D66); }
+.uic-search:focus-within { border-color: var(--uic-brand, #285AFF); color: var(--uic-ink-2, #3A3D45); }
+.uic-search-ic { display: inline-flex; line-height: 0; }
+.uic-search input { border: none; outline: none; background: transparent; width: 168px;
+  font-family: inherit; font-size: 12.5px; color: var(--uic-ink, #111317); }
+.uic-search input::placeholder { color: var(--uic-mute-2, #8E9199); }
+.uic-search input::-webkit-search-cancel-button { display: none; }
+.uic-search-x { display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: none; padding: 2px; border-radius: 999px; cursor: pointer;
+  color: var(--uic-mute, #5B5D66); }
+.uic-search-x:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
+
+/* ── Carousel ──────────────────────────────────────────────────────────────
+   Item width is a custom property so the product sizes its own cards. The nav buttons are
+   rendered only when the strip actually overflows (Carousel.jsx measures), and hidden entirely
+   on narrow viewports where touch scrolling is the better control. */
+.uic-carousel-wrap { position: relative; }
+.uic-carousel { display: flex; gap: 12px; overflow-x: auto; scroll-behavior: smooth;
+  padding: 2px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.uic-carousel::-webkit-scrollbar { display: none; }
+.uic-carousel > * { flex: 0 0 var(--uic-car-item, 236px); scroll-snap-align: start; }
+.uic-carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
+  width: 32px; height: 32px; border-radius: 999px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--uic-ink-2, #3A3D45);
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  box-shadow: var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .12)); }
+.uic-carousel-nav:hover:not(:disabled) { border-color: var(--uic-brand, #285AFF); color: var(--uic-brand, #285AFF); }
+.uic-carousel-nav:disabled { opacity: .35; cursor: default; }
+.uic-carousel-nav.is-left { left: -14px; }
+.uic-carousel-nav.is-right { right: -14px; }
+
+/* ── Card ──────────────────────────────────────────────────────────────────
+   Root is a div; the primary action is the inner button; overlay and actions are siblings of it,
+   never children — nesting them made every card a button inside a button. */
+.uic-card { position: relative; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  border-radius: var(--uic-r-card, 12px);
+  box-shadow: var(--uic-shadow-1, 0 1px 2px rgba(17, 24, 39, .04)); }
+.uic-card:hover { border-color: var(--uic-brand, #285AFF);
+  box-shadow: var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .12)); }
+.uic-card.is-selected { border-color: var(--uic-brand, #285AFF);
+  box-shadow: 0 0 0 2px var(--uic-brand-soft, #E1E9FF); }
+.uic-card-main { flex: 1; display: flex; flex-direction: column; text-align: left; padding: 0;
+  font-family: inherit; background: none; border: none; cursor: pointer; color: inherit; }
+div.uic-card-main { cursor: default; }
+.uic-card-art { display: flex; align-items: center; justify-content: center; overflow: hidden;
+  width: 100%; aspect-ratio: 16 / 9;
+  background: var(--uic-surface-2, #F7F8FA); border-bottom: 1px solid var(--uic-line-soft, #EFF1F4); }
+.uic-card-art > * { max-width: 100%; }
+.uic-card-foot { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; }
+.uic-card-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
+  color: var(--uic-ink, #111317); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-card-sub { flex-shrink: 0; font-size: 11.5px; color: var(--uic-mute-2, #8E9199); }
+.uic-card-overlay { position: absolute; top: 8px; right: 8px; z-index: 2;
+  opacity: 0; transition: opacity .12s ease; }
+.uic-card:hover .uic-card-overlay, .uic-card:focus-within .uic-card-overlay { opacity: 1; }
+/* No hover on touch, and no room to spare on a phone: show it. */
+@media (hover: none), (max-width: 760px) { .uic-card-overlay { opacity: 1; } }
+.uic-card-actions { position: absolute; right: 8px; bottom: 7px; z-index: 2;
+  display: inline-flex; gap: 2px; opacity: 0; }
+.uic-card:hover .uic-card-actions, .uic-card:focus-within .uic-card-actions { opacity: 1; }
+@media (hover: none) { .uic-card-actions { opacity: 1; } }
+/* Keep the name clear of the actions that float over its row. */
+.uic-card:has(.uic-card-actions) .uic-card-foot { padding-right: 66px; }
+
+.uic-cardgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+
+/* ── icon button (rename / delete on a row or a card) ── */
+.uic-iconbtn { width: 26px; height: 26px; border-radius: 7px; border: none; background: transparent;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--uic-mute, #5B5D66); }
+.uic-iconbtn:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
+.uic-iconbtn.is-danger:hover { background: var(--uic-fail-bg, #fef2f2); color: var(--uic-fail-ink, #b91c1c); }
+
+/* ── the document table ────────────────────────────────────────────────────
+   The wrap is not decoration: it is the card AND the overflow clip. Without it a long unbroken
+   name escapes the table and pushes the whole document sideways — 173px past the viewport at
+   390px wide, in the one copy that left it off. Fixed layout so the name column absorbs the
+   leftover width and long names ellipsize against it instead of widening the column. */
+.uic-table-wrap { overflow: hidden;
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  border-radius: var(--uic-r-card, 12px);
+  box-shadow: var(--uic-shadow-1, 0 1px 2px rgba(17, 24, 39, .04)); }
+.uic-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.uic-table th { text-align: left; padding: 10px 14px;
+  font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--uic-mute, #5B5D66); background: var(--uic-surface-2, #F7F8FA); }
+.uic-table td { padding: 8px 14px; }
+.uic-table tbody tr { cursor: pointer; }
+.uic-table tbody tr:hover, .uic-table tbody tr:focus-within { background: var(--uic-line-soft, #EFF1F4); }
+.uic-table .uic-col-last { width: 140px; }
+.uic-table .uic-col-access { width: 170px; }
+.uic-table-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.uic-table-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-table-thumb { width: 58px; height: 34px; flex-shrink: 0; border-radius: 7px; overflow: hidden;
+  background: var(--uic-surface-2, #F7F8FA); border: 1px solid var(--uic-line-soft, #EFF1F4); }
+.uic-table-thumb > * { width: 100%; height: 100%; }
+.uic-table-quiet { color: var(--uic-mute, #5B5D66); font-size: 12.5px; white-space: nowrap; }
+.uic-table-actions { width: 76px; text-align: right; white-space: nowrap; }
+.uic-table-actions .uic-iconbtn { opacity: 0; }
+.uic-table tbody tr:hover .uic-iconbtn, .uic-table tbody tr:focus-within .uic-iconbtn { opacity: 1; }
+@media (hover: none) { .uic-table-actions .uic-iconbtn { opacity: 1; } }
+
+/* ── a quiet line where content would have been ────────────────────────────
+   Not a component: four apps spelled this four ways (.empty-note, .page-note, .auth-err,
+   .chip-pop-note) and a `tone` prop over four unrelated treatments discriminates rather than
+   consolidates. Two classes, zero behaviour. */
+.uic-note { padding: 36px 16px; text-align: center; font-size: 13px; color: var(--uic-mute, #5B5D66); }
+.uic-note.is-err { padding: 0; text-align: left; color: var(--uic-fail-ink, #b91c1c); margin: 8px 0; }
+
+/* ── skeleton block: a neutral pulse in the shape of what is coming ── */
+.uic-skel { background: var(--uic-skel, var(--uic-line, #DDDFE6)); border-radius: 8px;
+  animation: uic-skel-pulse 1.6s ease-in-out infinite; }
+@keyframes uic-skel-pulse { 0%, 100% { opacity: .55; } 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .uic-skel { animation: none; } }
+
+/* ── narrow widths ─────────────────────────────────────────────────────────
+   The table sheds Access, then Last (Name and Actions always stay); the header tools wrap under
+   the heading; the prompt row wraps; the carousel yields to touch scrolling. */
+@media (max-width: 760px) {
+  .uic-table .uic-col-access { display: none; }
+}
+@media (max-width: 560px) {
+  .uic-page { padding: 0 14px 48px; }
+  .uic-topbar { padding: 0 14px; }
+  .uic-hero { padding: 40px 0 28px; }
+  .uic-hero h1 { font-size: 24px; }
+  .uic-promptbox { padding: 12px 12px 8px; }
+  .uic-section-h { flex-wrap: wrap; gap: 10px; }
+  .uic-section-tools { flex: 1 1 100%; }
+  .uic-section-tools .uic-search { flex: 1; }
+  .uic-search input { width: auto; flex: 1; min-width: 0; }
+  .uic-carousel-nav { display: none; }
+}
+@media (max-width: 500px) {
+  .uic-table .uic-col-last { display: none; }
+  .uic-table th, .uic-table td { padding: 8px 10px; }
+  .uic-table-actions { width: 64px; }
+}

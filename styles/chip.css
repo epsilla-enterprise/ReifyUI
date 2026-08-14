@@ -1,0 +1,53 @@
+/* Chip + Popover.
+   One file because both surfaces that use a chip — the prompt box on a landing page and the
+   composer in a conversation panel — need it, and a chip that opens a picker needs the popover
+   next to it. Every colour is a --uic-* custom property with the neutral fallback, same contract
+   as styles/chat.css. */
+
+/* ── Chip ───────────────────────────────────────────────────────────────────
+   Default is a solid neutral token: a file that is attached, a name that is set.
+   .is-open (clickable, nothing chosen) is dashed — an empty slot you may fill.
+   .is-selected is the brand fill — a choice that is currently in effect. */
+.uic-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  min-height: 26px; padding: 2px 4px 2px 9px; border-radius: var(--uic-r-pill, 999px);
+  font-family: inherit; font-size: 12px; line-height: 1.4;
+  background: var(--uic-surface, #FFFFFF); color: var(--uic-ink-2, #3A3D45);
+  border: 1px solid var(--uic-line, #DDDFE6); }
+/* No trailing ✕: the label owns the right edge, so the padding is symmetric. */
+.uic-chip:not(:has(.uic-chip-x)) { padding-right: 9px; }
+button.uic-chip { cursor: pointer; }
+button.uic-chip:hover { border-color: var(--uic-brand, #285AFF); color: var(--uic-brand-ink, #1641D8); }
+.uic-chip.is-open { border-style: dashed; color: var(--uic-mute, #5B5D66); }
+.uic-chip.is-selected { background: var(--uic-brand-faint, #EFF3FF);
+  border-color: var(--uic-brand-soft, #E1E9FF); color: var(--uic-brand-ink, #1641D8); }
+.uic-chip-ic { display: inline-flex; flex-shrink: 0; line-height: 0; }
+/* The label owns the truncation, so a long file name shortens instead of stretching the row. */
+.uic-chip-l { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-chip-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-chip-meta { flex-shrink: 0; font-size: 11px; color: var(--uic-mute, #5B5D66);
+  font-variant-numeric: tabular-nums; }
+.uic-chip-press { display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  border: none; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.uic-chip-x { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer; line-height: 0;
+  padding: 3px; border-radius: 999px; color: var(--uic-mute, #5B5D66); }
+.uic-chip-x:hover { background: var(--uic-hover-wash, rgba(0, 0, 0, .06)); color: var(--uic-ink, #111317); }
+
+/* ── Popover ────────────────────────────────────────────────────────────────
+   Positioned in JS (fixed, flipped and clamped to the viewport) — this only paints it. The
+   max-height the placement chose lands as an inline style, and the body scrolls inside it, so
+   the panel is never taller than the room it was given. */
+.uic-pop { position: fixed; z-index: var(--uic-z-overlay, 9000);
+  display: flex; flex-direction: column; gap: 6px; padding: 8px; overflow: hidden;
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  border-radius: 12px; box-shadow: var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .18)); }
+.uic-pop-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.uic-pop-note { font-size: 12px; color: var(--uic-mute, #5B5D66); padding: 0 4px; }
+.uic-pop-item { display: flex; align-items: center; gap: 8px; width: 100%;
+  text-align: left; font-family: inherit; font-size: 13px; color: var(--uic-ink-2, #3A3D45);
+  background: none; border: none; border-radius: 8px; padding: 7px 10px; cursor: pointer; }
+.uic-pop-item:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
+.uic-pop-item.is-on { background: var(--uic-brand-soft, #E1E9FF);
+  color: var(--uic-brand-ink, #1641D8); font-weight: 600; }
+.uic-pop-check { width: 15px; flex-shrink: 0; display: inline-flex; color: var(--uic-brand, #285AFF); }

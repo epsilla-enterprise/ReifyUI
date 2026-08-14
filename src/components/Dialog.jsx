@@ -30,6 +30,7 @@ import {
   useId, useMemo, useRef, useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useOverlayEscape } from './overlay.js';
 
 const DialogCtx = createContext(null);
 
@@ -102,16 +103,10 @@ function DialogShell({ dialog, isTop, onClose, t }) {
   const ref = useRef(null);
   const titleId = useId();
 
-  useEffect(() => {
-    if (!isTop) return undefined;
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      onClose(id, cancelValue(spec.kind));
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [id, isTop, onClose, spec.kind]);
+  // Escape goes through the package's shared overlay stack rather than a listener of our own, so
+  // a Modal or Popover opened ON TOP of this dialog answers the key and this one does not.
+  const escape = useCallback(() => onClose(id, cancelValue(spec.kind)), [id, onClose, spec.kind]);
+  useOverlayEscape(isTop, escape);
 
   // Focus the field if there is one, else the primary action — so Enter does the obvious thing.
   useEffect(() => {
