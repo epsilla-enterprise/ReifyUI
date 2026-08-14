@@ -290,8 +290,12 @@ body.uic-resizing iframe { pointer-events: none; }
    Below this width a 340px column and a document cannot both be usable, and squeezing the
    document is the worse trade — the conversation is the thing you can dismiss. */
 @media (max-width: 900px) {
+  /* It starts BELOW the host's app bar, not over it. At top:0 the drawer covered the banner's
+     right-hand side, so at 768 the sheet's Run button, Export and the account menu all hit-tested
+     to the conversation instead — unreachable unless you happened to know the collapse toggle was
+     the way out. The host declares its own bar height once; 0 is correct for a host that has none. */
   .uic-chat:not(.is-collapsed) {
-    position: fixed; top: 0; right: 0; bottom: 0; z-index: 90;
+    position: fixed; top: var(--uic-chat-drawer-top, 0); right: 0; bottom: 0; z-index: 90;
     width: min(86vw, 380px);
     flex: none !important;   /* beats the inline drag-width basis */
     box-shadow: var(--uic-shadow-3, -16px 0 40px rgba(15, 23, 42, .22));

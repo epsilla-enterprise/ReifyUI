@@ -16,6 +16,13 @@ import { Chevron } from './icons.jsx';
  * step    px per press; defaults to 90% of the visible width, so a press always leaves a
  *         landmark from the previous screenful on screen
  */
+// Both edge tests need the SAME tolerance. They did not: the end test allowed a pixel of slack
+// and the start test demanded scrollLeft <= 1, while scroll-snap parks the strip at its first
+// snap point — scrollLeft === 2 on a card with a border. So arriving at the start left the back
+// button enabled, and pressing it moved the strip two pixels: a control that looks live and does
+// nothing, which is the thing this component's own header promises not to ship.
+const EDGE = 2;
+
 export function Carousel(props) {
   const { label, step, children, classNames = {} } = props;
   const ref = useRef(null);
@@ -24,11 +31,11 @@ export function Carousel(props) {
   const measure = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    const overflow = el.scrollWidth - el.clientWidth > 1;
+    const overflow = el.scrollWidth - el.clientWidth > EDGE;
     setEdges({
       overflow,
-      start: el.scrollLeft <= 1,
-      end: el.scrollLeft >= el.scrollWidth - el.clientWidth - 1,
+      start: el.scrollLeft <= EDGE,
+      end: el.scrollLeft >= el.scrollWidth - el.clientWidth - EDGE,
     });
   }, []);
 
