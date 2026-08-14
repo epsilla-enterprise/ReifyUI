@@ -503,6 +503,22 @@ export function SheetGrid({
                         style={peer ? { boxShadow: `inset 0 0 0 2px ${peer.color}` } : undefined}
                         onClick={(e) => { if (!isEditing) openEdit(row.id, col, e.currentTarget); }}
                         title={c.error || ''}>
+                      {/* The boundaries a spreadsheet lets you grab are the ones you can see, and
+                          from row 20 the header is scrolled away. Both edges of every cell resize
+                          the same column and row the header and the gutter do — same handler,
+                          same drag, just reachable where the person already is. */}
+                      {!readOnly && (
+                        <>
+                          <span className="shg-resize-col shg-resize-in-cell"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => startResize(e, 'col', col.id,
+                                  colWidth(col) || e.currentTarget.closest('td').offsetWidth)} />
+                          <span className="shg-resize-row shg-resize-in-cell"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => startResize(e, 'row', row.id,
+                                  rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)} />
+                        </>
+                      )}
                       {peer && <span className="shg-peer-flag" style={{ background: peer.color }}>{peer.name}</span>}
                       {isEditing ? renderEditor(col) : (
                         <div className="shg-val"

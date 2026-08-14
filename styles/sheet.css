@@ -168,7 +168,6 @@
 .shg-menu-apply:hover { filter: brightness(1.06); }
 
 /* ── Resize handles ─────────────────────────────────────────────────────── */
-.shg-col { position: relative; }
 .shg-resize-col {
   position: absolute; top: 0; right: -3px; width: 7px; height: 100%;
   cursor: col-resize; z-index: 5;
@@ -179,6 +178,10 @@
   cursor: row-resize; z-index: 5;
 }
 .shg-resize-row:hover { background: var(--uic-brand-soft, #E1E9FF); opacity: .7; }
+/* Inside a cell the handle sits ON the border rather than 3px beyond it: a cell clips its
+   overflow to keep long values from escaping, and a handle hung outside would be clipped with
+   them. */
+.shg-resize-in-cell.shg-resize-col { right: 0; }
 .shg-cell, .shg-rownum { overflow: hidden; }
 
 /* ── Ghost add-row (Airtable-style, attached to the grid) ───────────────── */
