@@ -26,4 +26,24 @@
   --uic-turn-pad-x: 28px;
   --uic-bubble-max-w: 80%;
   --uic-working-ink: var(--uic-mute);
+
+  /* ── page surfaces beyond the conversation (library.css, preview.css) ── */
+  --uic-bg: #16171B;
+  --uic-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --uic-shadow-2: 0 10px 30px -12px rgba(0, 0, 0, .60), 0 2px 8px -2px rgba(0, 0, 0, .50);
+  --uic-shadow-3: -16px 0 40px rgba(0, 0, 0, .55);
+  /* Same formula as light: the glow is the brand, whatever the brand is. */
+  --uic-focus-ring: color-mix(in srgb, var(--uic-brand) 22%, transparent);
+  --uic-line-strong: #454852;
+  --uic-hover-wash: rgba(255, 255, 255, .07);
+  /* Text on a brand fill: on a dark theme the brand is light, so the readable ink is dark. */
+  --uic-on-brand: #0E0F13;
+  --uic-warn: #FBBF24;
+  --uic-warn-bg: rgba(251, 191, 36, .12);
+  --uic-status-pulse: color-mix(in srgb, var(--uic-brand) 45%, transparent);
+  --uic-r-card: 12px;
+  --uic-r-input: 8px;
+  --uic-r-pill: 999px;
+  --uic-z-overlay: 9000;
+  --uic-scrim: rgba(0, 0, 0, .58);
 }

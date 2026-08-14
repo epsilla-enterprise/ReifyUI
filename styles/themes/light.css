@@ -26,4 +26,27 @@
   --uic-turn-pad-x: 28px;
   --uic-bubble-max-w: 80%;
   --uic-working-ink: var(--uic-mute);
+
+  /* ── page surfaces beyond the conversation (library.css, preview.css) ── */
+  --uic-bg: #F7F8FB;
+  --uic-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --uic-shadow-2: 0 8px 24px -12px rgba(17, 24, 39, .12), 0 2px 6px -2px rgba(17, 24, 39, .06);
+  --uic-shadow-3: -16px 0 40px rgba(15, 23, 42, .22);
+  /* One focus glow, derived from the brand. Hand-written rgba() glows are how an emerald product
+     ends up ringing another product's teal on every focused input. */
+  --uic-focus-ring: color-mix(in srgb, var(--uic-brand) 14%, transparent);
+  --uic-line-strong: #CBD0DA;
+  --uic-hover-wash: rgba(0, 0, 0, .05);
+  --uic-on-brand: #FFFFFF;
+  --uic-warn: #F59E0B;
+  --uic-warn-bg: #FEF1D6;
+  /* The "a turn is running" ring. Also brand-derived, for the same reason. */
+  --uic-status-pulse: color-mix(in srgb, var(--uic-brand) 45%, transparent);
+  --uic-r-card: 12px;
+  --uic-r-input: 8px;
+  --uic-r-pill: 999px;
+  /* Everything that floats over the page — dialogs, modals, popovers — sits on ONE layer, so
+     their order is the order they opened in rather than a race between two stylesheets. */
+  --uic-z-overlay: 9000;
+  --uic-scrim: rgba(17, 24, 39, .42);
 }
