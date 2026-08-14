@@ -52,12 +52,14 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Streaming** | `pumpResponsesStream`, `createResponsesDispatcher`, `readSSEStream` — parse the Responses SSE event shape into ordered blocks |
 | **Block state** | `withText`, `withReasoning`, `withStep`, `withResult`, `asstText`, `createConversationStore` — session-continuation state machine |
 | **Chat surface** | `ChatMessages`, `UserTurn`, `AssistantTurn`, `ToolGroup`, `ToolRow`, `Composer` — message list + a collapsible "ran 5 commands, wrote a file" tool-step timeline |
+| **Chat panel** | `ChatPanel` — the whole conversation column beside a document: history replay, the live turn, connecting-and-retry, attachments, dictation, composer. You supply `runTurn` and `loadHistory`; it owns everything else. `turnsToMessages`, `createDictation`, `bytesLabel` |
+| **Library page** | `Carousel`, `Card`, `Chip`, `SearchField`, `Popover`, `Modal`, `useTypewriter` — the surface a document product opens on: a prompt box, a strip of templates, the things you already made |
 | **Rich blocks** | `CodeBlock` (highlight.js + mermaid + charts), `useResizablePane`, `PaneResizer` |
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
 | **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
 | **Slides** (`reifyui/slides`) | `SlideView`, `SlideStage`, `EditorCanvas`, `Presentation`, `ElementView`, `themeVars` — render a JSON deck, edit it by direct manipulation, present it |
 | **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid, extensible with your own column types |
-| **HarnessRouter** (`reifyui/harness`) | `configureKit`, `kitHarness`, `listSessions`, `readFile`, `writeFile`, `createResponse`, `streamTurn`, `turnsToMessages` — the transport for apps served by a HarnessRouter console |
+| **HarnessRouter** (`reifyui/harness`) | `configureKit`, `kitHarness`, `listSessions`, `readFile`, `writeFile`, `createResponse`, `streamTurn`, `turnsToMessages`, `fileToInputBlock` — the transport for apps served by a HarnessRouter console |
 | **Icons / tool meta** | `Ic*` icon set, `toolMeta`, `humanize`, `summarizeSteps` |
 | **Auth (optional)** | `configureAuth`, `login`, `AuthForm`, `GoogleButton` — a thin JWT client for products with a `/v1/auth`-style backend; wired to nothing by default |
 
@@ -140,9 +142,12 @@ import a feature, it adds nothing to your bundle.
 CSS ships as plain files you import where you want them — nothing is injected for you:
 
 ```js
-import 'reifyui/styles/chat.css';          // chat surface + tool steps + composer
+import 'reifyui/styles/chat.css';          // chat surface + tool steps + composer + ChatPanel
 import 'reifyui/styles/themes/light.css';  // light theme variables
 import 'reifyui/styles/themes/dark.css';   // dark theme variables
+import 'reifyui/styles/library.css';       // shell, hero, prompt box, carousel, card, table
+import 'reifyui/styles/chip.css';          // Chip + Popover
+import 'reifyui/styles/preview.css';       // Modal
 import 'reifyui/styles/slides.css';        // slides
 import 'reifyui/styles/sheet.css';         // spreadsheet grid
 import 'reifyui/styles/tasks.css';         // task list
@@ -150,7 +155,39 @@ import 'reifyui/styles/dialog.css';        // alert / confirm / prompt dialogs
 ```
 
 Themes are CSS-variable files — load one, or switch at runtime by toggling which you apply. Override
-the variables to match your design system.
+the variables to match your design system. Every stylesheet reads the same `--uic-*` set, dialogs
+included, so setting `--uic-brand` once moves the conversation, the grid, the focus glow and the
+dialog buttons together.
+
+## Chat panel
+
+`ChatMessages` renders a conversation. `ChatPanel` is the whole column around it — the part every
+product rebuilds and every rebuild gets slightly wrong. It owns the conversation's state machine;
+you own the transport and the words.
+
+```jsx
+import { ChatPanel, createDictation, turnsToMessages } from 'reifyui';
+import { sessionTurns, fileToInputBlock } from 'reifyui/harness';
+import 'reifyui/styles/chat.css';
+
+<ChatPanel
+  sessionId={id}                          // opaque — never parsed, so a placeholder id is fine
+  loadHistory={(sid) => sessionTurns(sid).then(turnsToMessages)}
+  runTurn={({ sessionId, text, attachments, handlers }) =>
+    runMyTurn(sessionId, text, handlers, attachments.map((a) => a.payload))}
+  onSessionStarted={adopt}                // the first turn opened a session: take its id
+  externalBusy={agentIsRunning}           // a turn started elsewhere — poll, don't show a blank prompt
+  attachments={{ prepare: fileToInputBlock }}
+  dictation={createDictation()}           // null where the browser has no recogniser -> no mic
+  title={doc.title}
+  placeholder="What should this do?"
+  emptyState={<YourEmptyState />}
+/>
+```
+
+`runTurn` resolves `{ connecting: true }` when the backend is not up yet: the panel then holds the
+message — with its files — and retries, instead of showing a turn that failed. Everything else it
+learns through `handlers`, which are the streaming dispatcher's own callbacks.
 
 ## Slides
 

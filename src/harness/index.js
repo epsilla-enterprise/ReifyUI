@@ -236,25 +236,13 @@ export async function streamTurn({ sessionId, harnessId, input, instructions, ha
 }
 
 // ── replaying history ──────────────────────────────────────────────────────
-const TURN_STATUS = {
-  failed: 'failed', error: 'failed', cancelled: 'cancelled',
-  incomplete: 'incomplete', max_turns: 'incomplete', timeout: 'incomplete',
-};
+// turnsToMessages now lives in state/turns.js and is re-exported from BOTH entry points: it is a
+// pure shape translation, and ChatPanel (a root export) takes the messages it produces, so a root
+// consumer must be able to convert history without pulling this fetch layer into its bundle.
+export { turnsToMessages } from '../state/turns.js';
 
-/** Gateway turns -> ChatMessages' message shape. */
-export function turnsToMessages(turns) {
-  const out = [];
-  for (const t of turns || []) {
-    if (t.user) out.push({ role: 'user', text: t.user });
-    const steps = (t.tools || []).map((x) => ({ name: x.name, args: x.arguments, result: x.result }));
-    const blocks = [];
-    if (steps.length) blocks.push({ kind: 'tools', reasoning: '', steps });
-    if (t.assistant) blocks.push({ kind: 'text', text: t.assistant });
-    const status = TURN_STATUS[t.status] || 'done';
-    if (blocks.length || status !== 'done') out.push({ role: 'assistant', blocks, status });
-  }
-  return out;
-}
+// Files on their way into a turn — `input_file` is this transport's block shape, so it lives here.
+export { FILE_MAX, mimeOf, bufferToDataUrl, fileToInputBlock } from './attach.js';
 
 /** The assistant text of a session's last turn — what a document page shows when there is no
  *  document yet and the agent has stopped. The real explanation is usually in there. */

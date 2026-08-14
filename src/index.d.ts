@@ -90,6 +90,26 @@ export function createConversationStore(
   makeInitial?: (key: string) => unknown,
 ): ConversationStore;
 
+// ── history replay ──────────────────────────────────────────────────────────
+/** One turn as the gateway records it: the person's text, the assistant's, and the tools between. */
+export interface Turn {
+  user?: string;
+  assistant?: string;
+  status?: string;
+  tools?: Array<{ name: string; arguments?: string; result?: unknown }>;
+}
+/** A rendered message: a user line, or an assistant turn as its ordered blocks. */
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  text?: string;
+  blocks?: Block[];
+  status?: 'running' | 'done' | 'failed' | 'cancelled' | 'incomplete';
+  /** Names of the files sent WITH this message. ChatPanel sets it on send; history never has it. */
+  files?: string[];
+}
+/** Gateway turns -> the message shape ChatMessages and ChatPanel render. */
+export function turnsToMessages(turns: Turn[]): ChatMessage[];
+
 // ── icons ───────────────────────────────────────────────────────────────────
 export const Svg: ComponentType<{ s?: number; children?: ReactNode }>;
 export const Chevron: ComponentType<{ dir?: 'left' | 'right' | 'down'; size?: number }>;
@@ -106,6 +126,10 @@ export const IcSpawn: ComponentType;
 export const IcCheck: ComponentType;
 export const IcThink: ComponentType;
 export const IcSend: ComponentType;
+export const IcX: ComponentType<{ size?: number }>;
+export const IcMic: ComponentType<{ size?: number }>;
+export const IcPaperclip: ComponentType<{ size?: number }>;
+export const IcPanelRight: ComponentType<{ size?: number }>;
 
 // ── tool metadata helpers ─────────────────────────────────────────────────────
 export function humanize(name: string): string;
@@ -141,8 +165,243 @@ export const ChatMessagesSkeleton: ComponentType<Record<string, unknown>>;
 export const UserTurn: ComponentType<Record<string, unknown>>;
 export const AssistantTurn: ComponentType<Record<string, unknown>>;
 export const DEFAULT_STATUS_LABELS: Record<string, string>;
-export const Composer: ComponentType<Record<string, unknown>>;
+
+export interface ComposerProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  /** Disables the textarea itself. */
+  disabled?: boolean;
+  /** Disables the send button — and, since 0.6.0, the Enter key with it. */
+  sendDisabled?: boolean;
+  placeholder?: string;
+  rows?: number;
+  /** Grow to fit the text, up to maxRows, then scroll. Exclusive with a CSS min-height. */
+  autoGrow?: boolean;
+  maxRows?: number;
+  autoFocus?: boolean;
+  /** The accessible name. Give one whenever the placeholder animates — it is otherwise the only
+   *  name the field has, and it changes every few seconds. */
+  inputAriaLabel?: string;
+  /** Node rendered ABOVE the textarea, e.g. a row of staged attachments. */
+  attachments?: ReactNode;
+  accessoriesLeft?: ReactNode;
+  accessoriesRight?: ReactNode;
+  /** Replaces the default send button entirely. */
+  renderSend?: () => ReactNode;
+  /** Each REPLACES the default class, so a product restyles wholesale instead of fighting it. */
+  classNames?: { root?: string; input?: string; row?: string };
+  inputRef?: { current: HTMLTextAreaElement | null };
+}
+export const Composer: ComponentType<ComposerProps>;
 export const CodeBlock: ComponentType<{ code?: string; lang?: string; [k: string]: unknown }>;
+
+// ── ChatPanel: the whole conversation column ─────────────────────────────────
+/** A file picked but not yet sent. `payload` is whatever the caller's prepare() produced and the
+ *  panel never looks inside it — it hands the list straight back to runTurn. */
+export interface StagedFile {
+  name: string;
+  size?: number;
+  payload?: unknown;
+  /** True between the pick and prepare() resolving. The panel sets it; prepare() never returns it. */
+  pending?: boolean;
+}
+
+/** The dispatcher's callbacks, plus the session id a brand-new document learns mid-stream. */
+export type TurnHandlers = ResponseHandlers;
+
+/** Run one turn. The panel does not know whether that is one stream, a stream with a fallback, or
+ *  three requests — only that progress arrives through `handlers`.
+ *  Resolve `{ connecting: true }` when the backend is not up yet: the panel then holds the
+ *  message (with its files) and retries, instead of showing a failed turn. */
+export type RunTurn = (args: {
+  sessionId: string;
+  text: string;
+  attachments: StagedFile[];
+  handlers: TurnHandlers;
+}) => Promise<{ connecting?: boolean } | void>;
+
+/** The conversation so far, already as messages — callers write `.then(turnsToMessages)`. A
+ *  caller whose brand-new document has no session yet resolves [] here without a request. */
+export type LoadHistory = (sessionId: string) => Promise<ChatMessage[]>;
+
+export interface ChatPanelProps {
+  /** Opaque to the panel: it is never parsed, so a placeholder id for an unsaved document is
+   *  fine. When it changes mid-stream to the real id, the panel recognises its own adoption and
+   *  does not reload over the turn arriving live. */
+  sessionId: string;
+  runTurn: RunTurn;
+  loadHistory: LoadHistory;
+  /** The turn opened a session. Adopt the id — the panel will not treat that as a new document. */
+  onSessionStarted?: (sessionId: string) => void;
+  /** A turn finished (here, or elsewhere): the document may have changed underneath. */
+  onChanged?: () => void;
+
+  /** A first message carried in from somewhere else (a landing prompt). Sent once, and only when
+   *  there is no history. */
+  seed?: string;
+  /** Fires before the history request whenever a seed was supplied — strip it from the URL here,
+   *  so a refresh or a back-button cannot resend it. */
+  onSeedConsumed?: () => void;
+
+  /** A turn is running that this panel did not start (another tab, or the first turn before the
+   *  session is queryable). The panel polls history while it is true and reloads once when it
+   *  goes false. */
+  externalBusy?: boolean;
+
+  /** Enables the attach control. prepare() turns a File into the entry runTurn will receive; it
+   *  rejects with the message the person sees. Null (default) renders no control at all. */
+  attachments?: {
+    prepare: (file: File) => Promise<StagedFile>;
+    accept?: string;
+    /** Default true. */
+    multiple?: boolean;
+  } | null;
+  /** From createDictation(), built ONCE (useState(() => createDictation())) — a new object every
+   *  render stops the recogniser every render. Null (default) renders no microphone, never a
+   *  disabled one. */
+  dictation?: {
+    start(handlers: { onText?: (text: string) => void; onEnd?: () => void; onError?: (message: string) => void }): void;
+    stop(): void;
+  } | null;
+
+  title?: string;
+  /** Header content after the title, e.g. a "the agent is working" mark. */
+  headerRight?: ReactNode;
+  collapsed?: boolean;
+  /** Absent → the collapse toggle is not rendered. */
+  onToggleCollapse?: () => void;
+  /** Panel width in px, from your own drag handle. Ignored while collapsed. */
+  width?: number;
+
+  placeholder?: string;
+  /** Shown when there is no conversation. */
+  emptyState?: ReactNode;
+  /** Shown INSTEAD of emptyState while externalBusy and empty — never falls back to it: a blank
+   *  "describe what you want" prompt is a dead end while the agent is visibly working. */
+  busyState?: ReactNode;
+  connectingLabel?: string;
+  connectingNote?: ReactNode;
+  workingLabel?: string;
+  statusLabels?: { failed?: string; cancelled?: string; incomplete?: string };
+  renderMarkdown?: (text: string) => ReactNode;
+  /** Extra content inside a user bubble. Return undefined to fall through to the built-in file
+   *  chips, the same contract ChatMessages uses. */
+  userExtras?: (message: ChatMessage, index: number) => ReactNode | undefined;
+  toolLabels?: Record<string, string>;
+  /** The panel's placement in YOUR layout. Everything it paints inside is the package's. */
+  classNames?: { root?: string };
+}
+export const ChatPanel: ComponentType<ChatPanelProps>;
+
+// ── voice input ─────────────────────────────────────────────────────────────
+export interface Dictation {
+  /** onText fires once per finished phrase, so a draft grows as you speak. */
+  start(handlers: {
+    onText?: (text: string) => void;
+    onEnd?: () => void;
+    onError?: (message: string) => void;
+  }): void;
+  stop(): void;
+}
+/** Null where the browser has no recogniser — render nothing, not a disabled button. */
+export function createDictation(options?: { lang?: string }): Dictation | null;
+
+/** A byte count as a person reads it. null/undefined -> '' (unknown is not zero). */
+export function bytesLabel(bytes: number | null | undefined): string;
+
+// ── library page pieces ─────────────────────────────────────────────────────
+export interface CarouselProps {
+  /** Names the scroll region and its buttons ("Scroll templates left"). */
+  label: string;
+  /** px per press. Defaults to 90% of the visible width. */
+  step?: number;
+  children?: ReactNode;
+  classNames?: { root?: string; viewport?: string; button?: string };
+}
+/** Buttons disable at each edge and are not rendered at all when the content already fits.
+ *  Item width comes from --uic-car-item (default 236px). */
+export const Carousel: ComponentType<CarouselProps>;
+
+export interface CardProps {
+  /** The thumbnail node; this component supplies the box around it. */
+  art?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  /** Makes art + title one button. Omit while an inline rename field is in `title`. */
+  onClick?: () => void;
+  selected?: boolean;
+  /** Floats over the art on hover; always visible where there is no hover. */
+  overlay?: ReactNode;
+  /** Sits in the title row — a sibling of the main button, never inside it. */
+  actions?: ReactNode;
+  classNames?: { root?: string };
+}
+export const Card: ComponentType<CardProps>;
+
+export interface ChipProps {
+  label: ReactNode;
+  icon?: ReactNode;
+  title?: string;
+  selected?: boolean;
+  onClick?: () => void;
+  onRemove?: () => void;
+  /** Required with onRemove: "✕" alone does not say which of five chips it removes. */
+  removeLabel?: string;
+  className?: string;
+}
+export const Chip: ComponentType<ChipProps>;
+
+export interface SearchFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+  /** Also the accessible name. */
+  placeholder?: string;
+  clearLabel?: string;
+  className?: string;
+}
+export const SearchField: ComponentType<SearchFieldProps>;
+
+export interface PopoverProps {
+  open: boolean;
+  /** The control it belongs to; the panel positions against its box and a press on it is not
+   *  treated as an outside press. */
+  anchorRef: { current: HTMLElement | null };
+  onClose?: () => void;
+  /** Preferred width, clamped to the viewport. */
+  width?: number;
+  /** Flip to the other side rather than squeeze below this. */
+  minHeight?: number;
+  placement?: 'auto' | 'below' | 'above';
+  label?: string;
+  className?: string;
+  children?: ReactNode;
+}
+/** Portals to the body and positions itself fixed — never clipped by an ancestor's overflow. */
+export const Popover: ComponentType<PopoverProps>;
+
+export interface ModalProps {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  description?: ReactNode;
+  /** Header buttons, before the close ✕. */
+  actions?: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'full';
+  /** An exact width, overriding `size`. */
+  width?: number | string;
+  /** id of your own heading, when the name does not live in `title`. */
+  labelledBy?: string;
+  children?: ReactNode;
+  classNames?: { backdrop?: string; root?: string; body?: string };
+}
+/** Shares the dialog host's Escape ordering: the last overlay opened answers the key. */
+export const Modal: ComponentType<ModalProps>;
+
+/** Types `phrases` out one at a time. Honours prefers-reduced-motion (shows the first phrase and
+ *  stops). Speed and order are not configurable — they were the only differences between the
+ *  three implementations this replaces. */
+export function useTypewriter(phrases: string[], options?: { active?: boolean }): string;
 
 // ── resizable pane ──────────────────────────────────────────────────────────
 export function useResizablePane(options?: Record<string, unknown>): {

@@ -4,11 +4,23 @@
 export { createResponsesDispatcher, readSSEStream, pumpResponsesStream } from './stream/responses.js';
 export { withText, withReasoning, withStep, withResult, asstText } from './state/blocks.js';
 export { createConversationStore } from './state/conversationStore.js';
-export { Svg, Chevron, IcTool, IcPlug, IcSkill, IcTerminal, IcDoc, IcList, IcGlobe, IcSearch, IcScroll, IcSpawn, IcCheck, IcThink, IcSend } from './components/icons.jsx';
+// Gateway turns -> the message shape ChatMessages/ChatPanel render. Also on reifyui/harness; it is
+// here too because ChatPanel's loadHistory takes messages, and converting history must not require
+// importing a transport. Pure function, no fetch.
+export { turnsToMessages } from './state/turns.js';
+export { Svg, Chevron, IcTool, IcPlug, IcSkill, IcTerminal, IcDoc, IcList, IcGlobe, IcSearch, IcScroll, IcSpawn, IcCheck, IcThink, IcSend, IcX, IcMic, IcPaperclip, IcPanelRight } from './components/icons.jsx';
 export { humanize, parseArgs, baseName, prettyJson, toolMeta, summarizeSteps } from './components/toolMeta.js';
 export { ToolGroup, ToolRow } from './components/ToolSteps.jsx';
 export { ChatMessages, ChatMessagesSkeleton, UserTurn, AssistantTurn, DEFAULT_STATUS_LABELS } from './components/ChatMessages.jsx';
 export { Composer } from './components/Composer.jsx';
+// The whole conversation column beside a document — history, live turn, retry, attachments,
+// dictation, composer. Four products had a divergent copy of this; the transport and the product's
+// prose stay at the call site, everything else is here. Needs styles/chat.css.
+export { ChatPanel } from './components/ChatPanel.jsx';
+// Voice input through the browser's own recogniser. Returns null where the API is absent, which
+// is what makes "render no microphone" the easy path and a disabled one impossible to reach for.
+export { createDictation } from './input/dictate.js';
+export { bytesLabel } from './format.js';
 // CodeBlock lazy-imports highlight.js — the consuming app must depend on highlight.js (^11),
 // same rule as mermaid for the Mermaid blocks. See components/CodeBlock.jsx.
 export { CodeBlock } from './components/CodeBlock.jsx';
@@ -33,3 +45,17 @@ export { AuthForm } from './auth/AuthForm.jsx';
 export { GoogleButton, GOOGLE_ENABLED } from './auth/GoogleButton.jsx';
 // Shared AI-spreadsheet grid (reusable in the Sheets product AND studio Spaces).
 export { SheetGrid, sheetToDelimited, sheetToAoA } from './sheet/SheetGrid.jsx';
+// ── the library page: the surface a document product opens on ────────────────
+// Small, product-agnostic pieces that existed 3-6 times each across the products built on this
+// package, every copy slightly different. Needs styles/library.css (+ chip.css, preview.css).
+export { Carousel } from './components/Carousel.jsx';
+export { Card } from './components/Card.jsx';
+export { Chip } from './components/Chip.jsx';
+export { SearchField } from './components/SearchField.jsx';
+// Anchored panel with placement built in — flips, clamps to the viewport, closes on Escape and
+// outside press. Ten hand-rolled versions of this existed; one survived a phone.
+export { Popover } from './components/Popover.jsx';
+// A dialog whose body is yours (useDialog answers a question; this holds content). Shares the
+// dialog host's Escape ordering and overlay layer. Needs styles/preview.css.
+export { Modal } from './components/Modal.jsx';
+export { useTypewriter } from './hooks/useTypewriter.js';

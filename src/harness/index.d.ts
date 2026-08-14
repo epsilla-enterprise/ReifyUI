@@ -84,5 +84,28 @@ export interface ChatMessage {
   blocks?: Array<Record<string, unknown>>;
   status?: string;
 }
+/** Also exported from the package root — same function, one implementation (state/turns.js).
+ *  Converting history must not require importing this fetch layer, and importing this fetch
+ *  layer must not mean going somewhere else for the converter. */
 export function turnsToMessages(turns: Turn[]): ChatMessage[];
 export function lastAssistantText(turns: Turn[]): string;
+
+// ── files on their way into a turn ──────────────────────────────────────────
+/** Per-file cap the API enforces. A bigger file is refused by name, never truncated. */
+export const FILE_MAX: number;
+/** Content type from a filename's extension, for the handful the products actually send. */
+export function mimeOf(name: string, fallback?: string): string;
+/** ArrayBuffer -> data: URL. Chunked: one fromCharCode over a large file overflows the stack. */
+export function bufferToDataUrl(buffer: ArrayBuffer, filename: string, type?: string): string;
+
+/** A picked File -> the `input_file` block a turn takes, wrapped in ChatPanel's StagedFile shape
+ *  so a whole attachment story is `attachments={{ prepare: fileToInputBlock }}`.
+ *
+ *  Not a workspace PUT: that needs a session a brand-new document does not have, is refused 409
+ *  while a turn runs, and cannot carry bytes that are not text.
+ *
+ *  Rejects with a message naming the FILE when it is over the cap — the person reads it. */
+export function fileToInputBlock(
+  file: File,
+  options?: { maxBytes?: number },
+): Promise<{ name: string; size: number; payload: { type: 'input_file'; filename: string; file_data: string } }>;

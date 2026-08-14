@@ -9,6 +9,10 @@
 //   renderSend()       replaces the default send button entirely
 //   classNames         { root, input, row } — each REPLACES the default class when provided,
 //                      so a product can restyle wholesale without fighting the package CSS
+//
+// NOTE: autoGrow and a CSS-driven min-height on the textarea are mutually exclusive — autoGrow
+// writes an explicit height on every keystroke, which the min-height then cannot raise. A fixed
+// multi-line box wants autoGrow={false} + rows.
 import React, { useEffect, useRef } from 'react';
 import { IcSend } from './icons.jsx';
 
@@ -25,6 +29,11 @@ export function Composer(props) {
     rows = 1,
     autoGrow = true,
     maxRows = 15,
+    autoFocus,
+    // The composer on a landing page often has an ANIMATING placeholder (a typewriter cycling
+    // through example prompts), and a placeholder is the textarea's only accessible name unless
+    // one is given — so the field announces a different name every few seconds.
+    inputAriaLabel,
     attachments,
     accessoriesLeft,
     accessoriesRight,
@@ -57,8 +66,18 @@ export function Composer(props) {
         value={value}
         disabled={disabled}
         rows={rows}
+        autoFocus={autoFocus}
+        aria-label={inputAriaLabel}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+        // Enter obeys sendDisabled, exactly as the send button does: two ways to trigger one
+        // action must not disagree about whether it is available. (It still swallows the key —
+        // a newline is not what Enter means in this box.) sendDisabled defaults to undefined,
+        // so for a caller that never set it nothing changes.
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' || e.shiftKey) return;
+          e.preventDefault();
+          if (!sendDisabled) onSend();
+        }}
       />
       <div className={classNames.row ?? 'wbx-composer-row'}>
         {accessoriesLeft}
