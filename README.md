@@ -57,6 +57,8 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Rich blocks** | `CodeBlock` (highlight.js + mermaid + charts), `useResizablePane`, `PaneResizer` |
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
 | **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
+| **Boards** | `Panel`, `PanelGrid`, `packLayout` — a drag-and-resize grid of panels whose read-only mode is the default, and the panel chrome for the two states a live panel actually has: loading, and failed with the error shown verbatim |
+| **Charts** (`reifyui/chart`) | `Chart`, `chartTokens`, `useChartTokens` — render an ECharts option (created once, disposed, resized with its box) and read your `--uic-*` theme as the colours a chart option can hold |
 | **Slides** (`reifyui/slides`) | `SlideView`, `SlideStage`, `EditorCanvas`, `Presentation`, `ElementView`, `themeVars` — render a JSON deck, edit it by direct manipulation, present it |
 | **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid, extensible with your own column types |
 | **HarnessRouter** (`reifyui/harness`) | `configureKit`, `kitHarness`, `listSessions`, `readFile`, `writeFile`, `createResponse`, `streamTurn`, `turnsToMessages`, `fileToInputBlock` — the transport for apps served by a HarnessRouter console |
@@ -150,6 +152,7 @@ import 'reifyui/styles/chip.css';          // Chip + Popover
 import 'reifyui/styles/preview.css';       // Modal
 import 'reifyui/styles/slides.css';        // slides
 import 'reifyui/styles/sheet.css';         // spreadsheet grid
+import 'reifyui/styles/panels.css';        // panel + panel grid, stat tile, result table
 import 'reifyui/styles/tasks.css';         // task list
 import 'reifyui/styles/dialog.css';        // alert / confirm / prompt dialogs
 ```
@@ -259,6 +262,69 @@ pass `cellText` so a custom column exports as something a person wants rather th
 
 All colours come from `--uic-*` tokens — apply `styles/themes/light.css` or `dark.css`, or set the
 same tokens in your own layer.
+
+## Boards
+
+A board is a layout array and a panel per entry. `PanelGrid` proposes the next layout; you own it.
+Read-only is the default, so a board that is only read never ships a drag handler.
+
+```jsx
+import { Panel, PanelGrid, packLayout } from 'reifyui';
+import { Chart, useChartTokens } from 'reifyui/chart';
+import 'reifyui/styles/panels.css';
+
+const [tokens, boardRef] = useChartTokens();   // re-reads when the theme flips
+
+<div ref={boardRef}>
+  <PanelGrid
+    layout={board.layout}
+    editable={arranging}
+    onLayoutChange={(next) => save({ ...board, layout: next })}
+    resizeLabel={(id) => `Resize ${titleOf(id)}`}
+  >
+    {board.panels.map((p) => (
+      <Panel
+        key={p.id}                              // matched to the layout entry's `i`
+        title={p.title}
+        meta={result[p.id]?.ranAt}
+        loading={!result[p.id]}                 // nothing yet: hold the box
+        busy={refreshing}                       // something already: keep it readable
+        error={result[p.id]?.error}             // shown verbatim — it is what fixes the query
+        errorDetail={<pre>{p.query}</pre>}
+        onRetry={() => run(p)}
+      >
+        <Chart option={optionFor(p, result[p.id], tokens)} label={p.title} />
+      </Panel>
+    ))}
+  </PanelGrid>
+</div>
+```
+
+`Chart` renders an ECharts option and nothing else — no series props, no data shape of its own, so
+anything ECharts can draw it can draw. It creates the instance once, disposes it, and resizes it
+when its box changes; build the option in a `useMemo`, because it re-applies whenever that
+reference changes. It lives at **`reifyui/chart`** rather than the root for the same reason as
+slides: echarts loads lazily inside it, and a root re-export would put a charting library in the
+dependency graph of every app that imports a `Button`. The panel and the grid have no such
+dependency and stay in the root.
+
+`chartTokens` / `useChartTokens` hand you the `--uic-*` theme as strings a chart option can hold —
+CSS custom properties do not reach inside a canvas, which is why charts are usually the one part of
+a product that ignores the theme. `palette` is eight categorical colours: assign them **in order**,
+one per series, and never cycle. The order is what makes them safe under colour-blind vision, and
+past eight, colour has stopped encoding identity — fold the tail into one series or split the
+chart. On a light surface three of the eight fall below 3:1 against white, so keep the legend or
+label series directly rather than resting identity on colour alone.
+
+Below `stackAt` (640px by default) the grid becomes one column in layout order and stops being
+arrangeable: twelve columns across a phone is 32px each, and dragging a panel between cells nobody
+can see is not an interaction worth keeping. Where it *is* arrangeable, the resize handle is a real
+button — arrow keys resize, shift with arrow keys moves — because a board that can only be arranged
+by dragging cannot be arranged by everyone.
+
+Three pieces a board needs are stylesheet-only, with no component to import: `.uic-stat` for a
+headline number, `.uic-dtable` for a result table that scrolls inside its own box, and `.uic-note`
+for a panel that ran and found nothing. Compose them directly.
 
 ## Optional: auth client
 

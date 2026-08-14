@@ -49,4 +49,21 @@
      their order is the order they opened in rather than a race between two stylesheets. */
   --uic-z-overlay: 9000;
   --uic-scrim: rgba(17, 24, 39, .42);
+
+  /* ── boards: series colours + the loading placeholder (panels.css) ──
+     A categorical scale, assigned IN ORDER and never cycled. The order is the colour-blind
+     safety mechanism, not a taste: every adjacent pair clears ΔE 8 under simulated protan/
+     deutan/tritan vision and ΔE 15 under normal vision, and re-ordering the slots breaks that.
+     Three of them sit below 3:1 against this surface (aqua, yellow, magenta), so identity must
+     never rest on colour alone here — keep the legend, or label the series directly. */
+  --uic-cat-1: #2a78d6;
+  --uic-cat-2: #eb6834;
+  --uic-cat-3: #1baf7a;
+  --uic-cat-4: #eda100;
+  --uic-cat-5: #e87ba4;
+  --uic-cat-6: #008300;
+  --uic-cat-7: #4a3aa7;
+  --uic-cat-8: #e34948;
+  --uic-skeleton: rgba(17, 24, 39, .06);
+  --uic-skeleton-hi: rgba(17, 24, 39, .11);
 }

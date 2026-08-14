@@ -1,0 +1,162 @@
+/* Panels and the grid they sit in — the surface a board is made of.
+
+   Token contract: the same --uic-* set every other stylesheet here reads (styles/themes/light.css
+   or dark.css, or your own layer). New in this file: --uic-cat-1…8 (the categorical series
+   colours, also read from JS by chartTokens) and --uic-skeleton / --uic-skeleton-hi (the two
+   stops of a loading placeholder).
+
+   The last three blocks — the stat tile, the result table, the empty note — have no component and
+   should not have one: they are markup plus these rules, and a component around them would be an
+   `as` prop wrapping one div. Compose them directly, the same way styles/library.css expects its
+   shell and hero to be composed. */
+
+/* ── the grid ───────────────────────────────────────────────────────────────
+   Positions arrive as inline left/top/width/height from PanelGrid, which owns the one conversion
+   from cells to pixels. Everything here is paint. */
+.uic-pg { position: relative; width: 100%; }
+.uic-pg-item { position: absolute; box-sizing: border-box;
+  transition: left .16s ease, top .16s ease, width .16s ease, height .16s ease; }
+/* The panel under the pointer must not lag it, and must float over its neighbours as it passes. */
+.uic-pg-item.is-moving { transition: none; z-index: 3; cursor: grabbing; }
+.uic-pg-item.is-moving .uic-panel { box-shadow: var(--uic-shadow-2, 0 8px 24px -12px rgba(17, 24, 39, .12)); }
+/* Where it would land. Brand-tinted rather than a colour of its own: it is a preview of a real
+   placement, not a warning. */
+.uic-pg-ghost { position: absolute; z-index: 1; pointer-events: none;
+  border-radius: var(--uic-r-card, 12px);
+  background: var(--uic-brand-faint, #EFF3FF);
+  border: 1.5px dashed var(--uic-brand-soft, #E1E9FF); }
+.uic-pg.is-editable .uic-panel-head { cursor: grab; touch-action: none; }
+.uic-pg.is-editable .uic-panel-head:active { cursor: grabbing; }
+
+.uic-pg-handle { position: absolute; right: 2px; bottom: 2px; z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; border: none; border-radius: 5px;
+  background: transparent; color: var(--uic-mute-2, #8E9199);
+  cursor: nwse-resize; touch-action: none; opacity: 0; transition: opacity .12s ease; }
+.uic-pg-item:hover .uic-pg-handle,
+.uic-pg-handle:focus-visible { opacity: 1; }
+.uic-pg-handle:focus-visible { outline: 2px solid var(--uic-brand, #285AFF); outline-offset: 1px; }
+/* Where there is no hover there is no way to reveal it, so it is simply always there. */
+@media (hover: none) {
+  .uic-pg-handle { opacity: 1; }
+}
+
+/* ── the panel ──────────────────────────────────────────────────────────────
+   Height comes from the grid cell, so the body is the only part that flexes and the header keeps
+   its size whatever is inside it. */
+.uic-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+  box-sizing: border-box; border-radius: var(--uic-r-card, 12px);
+  background: var(--uic-surface, #FFFFFF);
+  border: 1px solid var(--uic-line, #DDDFE6);
+  box-shadow: var(--uic-shadow-1, 0 1px 2px rgba(17, 24, 39, .04)); }
+.uic-panel-head { flex-shrink: 0; display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px 8px; min-height: 0; }
+.uic-panel-titles { flex: 1; min-width: 0; }
+/* Truncates rather than wrapping to a second line: a panel's height is a layout decision, and a
+   long title must not quietly take a row of the chart. */
+.uic-panel-title { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35;
+  color: var(--uic-ink, #111317);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-panel-meta { margin: 2px 0 0; font-size: 11.5px; line-height: 1.35;
+  color: var(--uic-mute, #5B5D66);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uic-panel-acts { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.uic-panel-body { flex: 1; min-height: 0; padding: 0 12px 12px; overflow: hidden; }
+.uic-panel-foot { flex-shrink: 0; padding: 8px 12px; font-size: 11.5px;
+  color: var(--uic-mute, #5B5D66); border-top: 1px solid var(--uic-line-soft, #EFF1F4); }
+
+/* A refresh in progress. One indeterminate line — nothing here knows how far along it is. */
+.uic-panel-busy { flex-shrink: 0; height: 2px; overflow: hidden;
+  background: var(--uic-line-soft, #EFF1F4); }
+.uic-panel-busy::after { content: ''; display: block; width: 40%; height: 100%;
+  background: var(--uic-brand, #285AFF); animation: uic-panel-slide 1.1s ease-in-out infinite; }
+@keyframes uic-panel-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ── loading: hold the box, promise nothing ─────────────────────────────────
+   Grey bars, not a spinner and not a number: the shape says "content is coming", and there is no
+   honest way to say how much or how soon. */
+.uic-panel-load { display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+  height: 100%; padding: 12px 0 4px; }
+.uic-panel-load-bar { display: block; border-radius: 4px;
+  background: linear-gradient(90deg,
+    var(--uic-skeleton, rgba(17, 24, 39, .06)) 25%,
+    var(--uic-skeleton-hi, rgba(17, 24, 39, .11)) 37%,
+    var(--uic-skeleton, rgba(17, 24, 39, .06)) 63%);
+  background-size: 400% 100%; animation: uic-panel-shimmer 1.4s ease infinite; }
+.uic-panel-load-bar:nth-child(1) { height: 34%; }
+.uic-panel-load-bar:nth-child(2) { height: 58%; }
+.uic-panel-load-bar:nth-child(3) { height: 24%; }
+@keyframes uic-panel-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .uic-panel-load-bar { animation: none; }
+  .uic-panel-busy::after { animation: none; width: 100%; opacity: .5; }
+  .uic-pg-item { transition: none; }
+}
+
+/* ── failed: show the error, verbatim ───────────────────────────────────────
+   The message is monospace, selectable and scrollable in both directions, because the whole point
+   of showing it is that someone can read it precisely and copy it into the thing that broke. */
+.uic-panel-fail { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0;
+  padding-top: 4px; }
+.uic-panel-fail-t { margin: 0; flex-shrink: 0; font-size: 12.5px; font-weight: 600;
+  color: var(--uic-fail-ink, #B91C1C); }
+.uic-panel-fail-m { margin: 0; flex: 1; min-height: 0; overflow: auto;
+  padding: 8px 10px; border-radius: var(--uic-r-input, 8px);
+  font-family: var(--uic-mono, ui-monospace, Menlo, monospace); font-size: 11.5px; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: anywhere; user-select: text;
+  color: var(--uic-ink-2, #3A3D45);
+  background: var(--uic-fail-bg, #FEF2F2);
+  border: 1px solid var(--uic-fail-line, #FECACA); }
+.uic-panel-fail-d { flex-shrink: 0; font-size: 11.5px; color: var(--uic-mute, #5B5D66); }
+.uic-panel-fail-d > summary { cursor: pointer; }
+.uic-panel-fail-dd { margin-top: 6px; max-height: 40vh; overflow: auto;
+  font-family: var(--uic-mono, ui-monospace, Menlo, monospace); font-size: 11.5px;
+  white-space: pre-wrap; overflow-wrap: anywhere; color: var(--uic-ink-2, #3A3D45); }
+.uic-panel-fail-act { flex-shrink: 0; }
+
+/* ── chart box ──────────────────────────────────────────────────────────────
+   The chart fills whatever it is given; the panel decides how big that is. */
+.uic-chart { width: 100%; height: 100%; min-height: 0; }
+.uic-chart.is-unavailable { display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: 12px; color: var(--uic-mute, #5B5D66); }
+
+/* ── stat tile (no component: markup + these rules) ─────────────────────────
+   <div class="uic-stat"><p class="uic-stat-v">…</p><p class="uic-stat-sub">…</p></div>
+   The value is sized in cqh so one number fills a tall tile and a short one without a second
+   font-size decision at every call site. */
+.uic-stat { container-type: size; display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: center; height: 100%; gap: 4px; }
+.uic-stat-v { margin: 0; font-weight: 650; letter-spacing: -0.02em; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, 34cqh, 54px); color: var(--uic-ink, #111317); }
+.uic-stat-sub { margin: 0; font-size: 12px; color: var(--uic-mute, #5B5D66); }
+
+/* ── result table (no component) ────────────────────────────────────────────
+   Scrolls inside its own box, in both axes: a wide result must never widen the page.
+   <div class="uic-dtable"><table>…</table></div> */
+.uic-dtable { height: 100%; min-height: 0; overflow: auto; }
+.uic-dtable > table { border-collapse: collapse; width: 100%; min-width: max-content;
+  font-size: 12px; color: var(--uic-ink-2, #3A3D45); }
+.uic-dtable th, .uic-dtable td { padding: 6px 10px; text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--uic-line-soft, #EFF1F4); }
+.uic-dtable th { position: sticky; top: 0; z-index: 1; font-weight: 600;
+  color: var(--uic-mute, #5B5D66);
+  background: var(--uic-surface, #FFFFFF);
+  border-bottom: 1px solid var(--uic-line, #DDDFE6); }
+/* Numbers line up under each other or they cannot be compared at a glance. */
+.uic-dtable td.is-num, .uic-dtable th.is-num { text-align: right; font-variant-numeric: tabular-nums; }
+.uic-dtable tbody tr:hover td { background: var(--uic-hover-wash, rgba(0, 0, 0, .05)); }
+
+/* A panel that ran and has nothing to show. Distinct from failed, which has a message. */
+.uic-note { display: flex; align-items: center; justify-content: center; height: 100%;
+  font-size: 12.5px; color: var(--uic-mute-2, #8E9199); }
+
+/* Named for a screen reader, drawn for nobody. */
+.uic-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

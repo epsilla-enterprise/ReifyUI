@@ -67,3 +67,11 @@ export { Popover } from './components/Popover.jsx';
 // dialog host's Escape ordering and overlay layer. Needs styles/preview.css.
 export { Modal } from './components/Modal.jsx';
 export { useTypewriter } from './hooks/useTypewriter.js';
+// ── boards: a grid of panels ─────────────────────────────────────────────────
+// The frame around one thing on a board (and, crucially, the two states that thing spends most
+// of its life in: loading, and failed-with-a-message), plus the grid that arranges them.
+// Read-only is the default; nothing here depends on a charting library — the chart that usually
+// goes INSIDE a panel is at reifyui/chart, so a board of tables costs nothing extra.
+// Needs styles/panels.css (+ form.css when a panel offers a retry).
+export { Panel } from './components/Panel.jsx';
+export { PanelGrid, packLayout } from './grid/PanelGrid.jsx';

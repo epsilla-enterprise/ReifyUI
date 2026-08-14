@@ -7,9 +7,18 @@
 //
 //   - transport is injected. The console fetches with an auth header; a kit is same-origin and
 //     needs none. `fetchFile` defaults to a plain fetch, which is right for same-origin callers.
-//   - markdown and code render through props. The package does not depend on a markdown library,
-//     and it already ships one code renderer (CodeBlock) — adding a second highlighter to render
-//     the same text twice is the duplication this component exists to argue against.
+//   - markdown, code and SPREADSHEETS render through props. The package does not depend on a
+//     markdown library, and it already ships one code renderer (CodeBlock) — adding a second
+//     highlighter to render the same text twice is the duplication this component exists to
+//     argue against.
+//
+//     `parseWorkbook` is the same rule, learned the hard way: this file used to `await
+//     import('xlsx')` directly, which put a spreadsheet library in the dependency graph of every
+//     app that imports anything from this package's root. A kit that shows slides, or charts,
+//     and has never heard of a spreadsheet then fails to BUILD — Rollup cannot resolve a dynamic
+//     import of a package that is not installed. The rule the chart entry states ("an app that
+//     imports a Button must not resolve a charting library") was already being broken here.
+//     Without the prop, spreadsheets fall through to the download, honestly labelled.
 //
 // `officePdfUrl` is how a caller offers a server-rendered PDF for formats no browser draws
 // (pptx, docx, odp). Without it those fall through to the download, honestly labelled.
@@ -78,8 +87,13 @@ const defaultDownload = (url, name) => {
   document.body.appendChild(a); a.click(); a.remove();
 };
 
+/**
+ * `parseWorkbook(arrayBuffer)` → `[{ name, filled, rows }]`, one entry per tab, where `rows` is
+ * an array-of-arrays (header row first) and `filled` says whether the tab has anything in it at
+ * all. Async, so the caller can load its spreadsheet library lazily.
+ */
 export function FilePreview({
-  file, onClose, fetchFile, officePdfUrl, renderMarkdown, onDownload, title,
+  file, onClose, fetchFile, officePdfUrl, renderMarkdown, parseWorkbook, onDownload, title,
 }) {
   const { url, name } = file || {};
   const [st, setSt] = useState({ kind: 'loading' });
@@ -113,18 +127,12 @@ export function FilePreview({
         return;
       }
       if (kind === 'sheet') {
+        if (!parseWorkbook) {
+          setSt({ kind: 'binary', error: 'This format has no inline preview here — download it to open it.' });
+          return;
+        }
         try {
-          const buf = await res.arrayBuffer();
-          const XLSX = await import('xlsx');
-          const wb = XLSX.read(buf, { type: 'array' });
-          // sheet_to_json THROWS on a sheet with no '!ref' — an empty one — and losing that threw
-          // away the whole workbook rather than one tab. Tools routinely leave an empty default
-          // Sheet1 in front of the real data, so this was most spreadsheets.
-          const sheets = wb.SheetNames.map((n) => {
-            const ws = wb.Sheets[n] || {};
-            const filled = Boolean(ws['!ref']);
-            return { name: n, filled, rows: filled ? XLSX.utils.sheet_to_json(ws, { header: 1, raw: false }) : [] };
-          });
+          const sheets = await parseWorkbook(await res.arrayBuffer());
           // Open on the first sheet that has something: opening on an empty one reads as a broken
           // preview rather than as an empty tab.
           const first = sheets.findIndex((s) => s.filled);
@@ -147,7 +155,7 @@ export function FilePreview({
     })().catch(() => { if (alive) setSt({ kind: 'binary', error: 'Could not load this file.' }); });
 
     return () => { alive = false; if (obj) URL.revokeObjectURL(obj); };
-  }, [url, name, fetchFile, officePdfUrl]);
+  }, [url, name, fetchFile, officePdfUrl, parseWorkbook]);
 
   const download = () => (onDownload ? onDownload(url, name) : defaultDownload(url, name));
 

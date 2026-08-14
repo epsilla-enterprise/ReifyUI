@@ -15,7 +15,11 @@ export default defineConfig({
   // at all but the HarnessRouter transport, useful only to apps the HarnessRouter console
   // serves. Keeping it out of the root means importing a Button never pulls in a fetch layer
   // for an API you do not run. Consumers reach it at `reifyui/harness`.
-  entry: { index: 'src/index.js', slides: 'src/slides/index.js', harness: 'src/harness/index.js' },
+  // `chart` is a separate entry for exactly the reason `slides` is: it lazy-loads echarts, and a
+  // root re-export would put a charting library in the dependency graph of every app that
+  // imports a Button. The PANEL and the GRID a chart usually sits in are in the root index —
+  // they have no chart dependency, and a board of tables should cost nothing.
+  entry: { index: 'src/index.js', slides: 'src/slides/index.js', harness: 'src/harness/index.js', chart: 'src/chart/index.js' },
   format: ['esm', 'cjs'],
   target: 'es2020',
   platform: 'browser',
@@ -26,5 +30,5 @@ export default defineConfig({
   esbuildOptions(options) {
     options.jsx = 'automatic';
   },
-  onSuccess: 'cp src/index.d.ts dist/index.d.ts && cp src/slides/index.d.ts dist/slides.d.ts && cp src/harness/index.d.ts dist/harness.d.ts',
+  onSuccess: 'cp src/index.d.ts dist/index.d.ts && cp src/slides/index.d.ts dist/slides.d.ts && cp src/harness/index.d.ts dist/harness.d.ts && cp src/chart/index.d.ts dist/chart.d.ts',
 });

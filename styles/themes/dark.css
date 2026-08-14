@@ -46,4 +46,20 @@
   --uic-r-pill: 999px;
   --uic-z-overlay: 9000;
   --uic-scrim: rgba(0, 0, 0, .58);
+
+  /* ── boards: series colours + the loading placeholder (panels.css) ──
+     The same eight hues as the light theme, re-stepped for a dark surface — not the light values
+     reused, and not an automatic inversion. Every adjacent pair clears ΔE 8 under simulated
+     protan/deutan/tritan vision and ΔE 15 under normal vision, and all eight clear 3:1 against
+     this surface. Assign IN ORDER and never cycle: the order is what makes the scale safe. */
+  --uic-cat-1: #3987e5;
+  --uic-cat-2: #d95926;
+  --uic-cat-3: #199e70;
+  --uic-cat-4: #c98500;
+  --uic-cat-5: #d55181;
+  --uic-cat-6: #008300;
+  --uic-cat-7: #9085e9;
+  --uic-cat-8: #e66767;
+  --uic-skeleton: rgba(255, 255, 255, .07);
+  --uic-skeleton-hi: rgba(255, 255, 255, .13);
 }

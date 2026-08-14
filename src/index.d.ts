@@ -575,3 +575,92 @@ export interface SheetExportOptions {
 }
 export function sheetToDelimited(sheet: Sheet, delimiter?: string, options?: SheetExportOptions): string;
 export function sheetToAoA(sheet: Sheet, options?: SheetExportOptions): unknown[][];
+
+// ── boards: panels and the grid they sit in ──────────────────────────────────
+export interface PanelProps {
+  title?: ReactNode;
+  /** Heading level, so a board fits YOUR document outline. Default 'h3'. */
+  titleAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'div';
+  /** Quiet second line under the title — when it last refreshed, what it counts. */
+  meta?: ReactNode;
+  /** Controls in the header, after the title. A press on one never drags the panel. */
+  actions?: ReactNode;
+  footer?: ReactNode;
+
+  /** No content yet: the body becomes a placeholder of the same size, so a board of four
+   *  requests does not reflow four times as they land. */
+  loading?: boolean;
+  /** The name a screen reader is given while loading. Default 'Loading'. */
+  loadingLabel?: string;
+  /** Content is up and being refreshed: the header shows it and the body stays readable. */
+  busy?: boolean;
+  busyLabel?: string;
+
+  /** What went wrong, verbatim — shown monospace, selectable and scrollable, because the error
+   *  is the thing that lets someone fix what produced it. Wins over `children`, loses to
+   *  `loading` (a retry in flight should not still show the failure it is retrying). */
+  error?: ReactNode;
+  /** The line above the message. Default 'This panel could not load'. */
+  errorTitle?: ReactNode;
+  /** Extra context under the message, folded away — e.g. the statement that failed. */
+  errorDetail?: ReactNode;
+  detailLabel?: ReactNode;
+  /** Absent → no retry control is drawn, rather than one that does nothing. */
+  onRetry?: () => void;
+  retryLabel?: ReactNode;
+
+  className?: string;
+  classNames?: { root?: string; head?: string; body?: string };
+  children?: ReactNode;
+}
+/** The frame around one thing on a board. Fills the cell it is given: put it in a box with a
+ *  height. Its header carries `.uic-panel-head`, which is what PanelGrid drags by. */
+export const Panel: ComponentType<PanelProps>;
+
+/** One panel's cell. x/w are COLUMNS and y/h are ROWS — never pixels. */
+export interface PanelLayoutItem {
+  /** Matches the child's React `key`. */
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minW?: number;
+  minH?: number;
+  maxW?: number;
+  maxH?: number;
+  /** Neither moves nor resizes, and other panels flow around it. */
+  static?: boolean;
+}
+
+export interface PanelGridProps {
+  layout: PanelLayoutItem[];
+  /** One element per layout entry, matched by `key`. A child with no entry is not rendered. */
+  children?: ReactNode;
+  cols?: number;
+  /** px per row. Default 40. */
+  rowHeight?: number;
+  /** px between cells. Default 12. */
+  gap?: number;
+  /** Default false: nothing drags, nothing resizes, and no handle is drawn. */
+  editable?: boolean;
+  /** Selector a press must land inside to start a move. Default '.uic-panel-head' — Panel's own
+   *  header. Point it at your own element and give that element `touch-action: none`. */
+  dragHandle?: string;
+  /** Below this container width the grid becomes ONE column in layout order and stops being
+   *  arrangeable. Default 640. */
+  stackAt?: number;
+  /** The resize handle's accessible name. Name the panel in it. */
+  resizeLabel?: (id: string) => string;
+  /** Fires ONCE per interaction, on release — not per pixel. The layout stays yours: nothing
+   *  moves until you apply what this hands you. */
+  onLayoutChange?: (layout: PanelLayoutItem[]) => void;
+  className?: string;
+}
+/** A grid of panels you can drag and resize, whose read-only mode is the default. Gravity is up
+ *  and always on: the panel you drop keeps the cell you dropped it in, the rest flow around it. */
+export const PanelGrid: ComponentType<PanelGridProps>;
+
+/** Gravity applied to a layout you built yourself. Add a panel with `y: Infinity` to put it at
+ *  the bottom, then pass the array through this to turn that into a real row. */
+export function packLayout(layout: PanelLayoutItem[], cols?: number): PanelLayoutItem[];
