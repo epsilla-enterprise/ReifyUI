@@ -1,0 +1,65 @@
+/* Form primitives. One label weight, one focus ring, one hint size — the point of having these
+   at all is that a form cannot look different per surface. Product-neutral: --uic-* only. */
+
+.uic-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.uic-field + .uic-field { margin-top: 14px; }
+.uic-field-label {
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  color: var(--uic-ink-2, #3A3D45);
+}
+.uic-field-req { color: var(--uic-fail-ink, #B91C1C); margin-left: 3px; }
+.uic-field-hint, .uic-field-err { margin: 0; font-size: 11.5px; line-height: 1.45; }
+.uic-field-hint { color: var(--uic-mute, #5B5D66); }
+.uic-field-err { color: var(--uic-fail-ink, #B91C1C); }
+
+.uic-input {
+  width: 100%; box-sizing: border-box; font-family: inherit; font-size: 13px;
+  color: var(--uic-ink, #111317); background: var(--uic-surface, #FFFFFF);
+  border: 1px solid var(--uic-line, #DDDFE6); border-radius: 8px;
+  padding: 7px 10px; min-height: 34px;
+}
+.uic-input::placeholder { color: var(--uic-mute-2, #8E9199); }
+.uic-input:focus {
+  outline: none; border-color: var(--uic-brand, #285AFF);
+  box-shadow: 0 0 0 3px var(--uic-brand-faint, #EFF3FF);
+}
+.uic-input.is-error { border-color: var(--uic-fail-line, #FECACA); }
+.uic-input.is-error:focus { border-color: var(--uic-fail-ink, #B91C1C); box-shadow: 0 0 0 3px var(--uic-fail-bg, #FEF2F2); }
+.uic-input:disabled { background: var(--uic-surface-2, #F7F8FA); color: var(--uic-mute, #5B5D66); cursor: not-allowed; }
+
+.uic-textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
+
+/* The chevron is drawn rather than left to the platform: the platform's differs per OS and the
+   rest of the form does not. */
+.uic-select-wrap { position: relative; display: block; }
+.uic-select { appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: pointer; }
+.uic-select-chev {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; display: flex; color: var(--uic-mute, #5B5D66);
+}
+
+.uic-form-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.uic-form-actions.is-end { justify-content: flex-end; }
+.uic-form-actions.is-start { justify-content: flex-start; }
+.uic-form-actions.is-between { justify-content: space-between; }
+
+.uic-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
+  border-radius: 8px; border: 1px solid transparent;
+}
+.uic-btn.is-md { height: 34px; padding: 0 14px; font-size: 13px; }
+.uic-btn.is-sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.uic-btn.is-default {
+  color: var(--uic-ink-2, #3A3D45); background: var(--uic-surface, #FFFFFF);
+  border-color: var(--uic-line, #DDDFE6);
+}
+.uic-btn.is-default:hover { border-color: var(--uic-mute-2, #8E9199); }
+.uic-btn.is-primary { color: #fff; background: var(--uic-brand, #285AFF); border-color: var(--uic-brand, #285AFF); }
+.uic-btn.is-primary:hover { background: var(--uic-brand-ink, #1641D8); border-color: var(--uic-brand-ink, #1641D8); }
+.uic-btn.is-ghost { color: var(--uic-mute, #5B5D66); background: transparent; }
+.uic-btn.is-ghost:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
+.uic-btn.is-danger { color: var(--uic-fail-ink, #B91C1C); background: var(--uic-surface, #FFFFFF); border-color: var(--uic-fail-line, #FECACA); }
+.uic-btn.is-danger:hover { background: var(--uic-fail-bg, #FEF2F2); }
+.uic-btn:disabled { opacity: .5; cursor: not-allowed; }
+.uic-btn:focus-visible { outline: 2px solid var(--uic-brand, #285AFF); outline-offset: 2px; }

@@ -8,7 +8,7 @@ export { createConversationStore } from './state/conversationStore.js';
 // here too because ChatPanel's loadHistory takes messages, and converting history must not require
 // importing a transport. Pure function, no fetch.
 export { turnsToMessages } from './state/turns.js';
-export { Svg, Chevron, IcTool, IcPlug, IcSkill, IcTerminal, IcDoc, IcList, IcGlobe, IcSearch, IcScroll, IcSpawn, IcCheck, IcThink, IcSend, IcX, IcMic, IcPaperclip, IcPanelRight } from './components/icons.jsx';
+export { Svg, Chevron, IcDownload, IcEye, IcTool, IcPlug, IcSkill, IcTerminal, IcDoc, IcList, IcGlobe, IcSearch, IcScroll, IcSpawn, IcCheck, IcThink, IcSend, IcX, IcMic, IcPaperclip, IcPanelRight } from './components/icons.jsx';
 export { humanize, parseArgs, baseName, prettyJson, toolMeta, summarizeSteps } from './components/toolMeta.js';
 export { ToolGroup, ToolRow } from './components/ToolSteps.jsx';
 export { ChatMessages, ChatMessagesSkeleton, UserTurn, AssistantTurn, DEFAULT_STATUS_LABELS } from './components/ChatMessages.jsx';
@@ -45,6 +45,14 @@ export { AuthForm } from './auth/AuthForm.jsx';
 export { GoogleButton, GOOGLE_ENABLED } from './auth/GoogleButton.jsx';
 // Shared AI-spreadsheet grid (reusable in the Sheets product AND studio Spaces).
 export { SheetGrid, sheetToDelimited, sheetToAoA } from './sheet/SheetGrid.jsx';
+// Files, drawn the same wherever they appear. FileTypeIcon uses react-file-icon when it is
+// installed (an optional peer) and falls back to an extension badge when it is not.
+export { FileTypeIcon, extOf } from './components/FileTypeIcon.jsx';
+export { FileCard } from './components/FileCard.jsx';
+export { FilePreview } from './components/FilePreview.jsx';
+// Form primitives. Every surface here had been hand-rolling label+select+textarea, which is why
+// the same form looked different in each of them.
+export { Field, Input, Textarea, Select, FormActions, Button } from './components/form.jsx';
 // ── the library page: the surface a document product opens on ────────────────
 // Small, product-agnostic pieces that existed 3-6 times each across the products built on this
 // package, every copy slightly different. Needs styles/library.css (+ chip.css, preview.css).

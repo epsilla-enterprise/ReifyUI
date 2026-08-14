@@ -521,8 +521,7 @@ export function SheetGrid({
                       )}
                       {peer && <span className="shg-peer-flag" style={{ background: peer.color }}>{peer.name}</span>}
                       {isEditing ? renderEditor(col) : (
-                        <div className="shg-val"
-                             style={{ maxWidth: (colWidth(col) ? colWidth(col) - 20 : 400) }}>
+                        <div className="shg-val">
                           {custom !== undefined ? custom : (
                             <>
                               {computed && <StatusDot status={c.status} />}

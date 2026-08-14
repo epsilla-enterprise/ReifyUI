@@ -1,6 +1,6 @@
 {
   "name": "reifyui",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI \u2014 model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
   "keywords": [
     "react",
@@ -70,7 +70,8 @@
     "highlight.js": "^11",
     "mermaid": "^10 || ^11",
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "react-file-icon": "^1"
   },
   "peerDependenciesMeta": {
     "highlight.js": {
@@ -80,6 +81,9 @@
       "optional": true
     },
     "echarts": {
+      "optional": true
+    },
+    "react-file-icon": {
       "optional": true
     }
   },

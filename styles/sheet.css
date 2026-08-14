@@ -57,7 +57,11 @@
 .shg-cell { cursor: text; background: var(--uic-surface, #FFFFFF); }
 .shg-cell-compute { cursor: default; }
 .shg-cell:hover { background: var(--uic-surface-2, #F7F8FA); }
-.shg-val { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 100%; }
+/* The cell is the constraint on its own value. This used to carry an inline max-width of the
+   column width minus 20, or 400px where the column had no explicit width — a number nothing
+   derived, which ellipsised a value long before its own cell ran out of room. */
+.shg-val { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 100%;
+           width: 100%; min-width: 0; box-sizing: border-box; }
 .shg-val-txt {
   flex: 1; min-width: 0; color: var(--uic-ink, #111317);
   /* Wrap to the row's height; the last visible line ellipsizes. Rows at the

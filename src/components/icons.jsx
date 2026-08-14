@@ -40,3 +40,5 @@ export const IcX = ({ size = 14 }) => <Svg s={size}><path d="M18 6 6 18M6 6l12 1
 export const IcMic = ({ size = 15 }) => <Svg s={size}><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8" /></Svg>;
 export const IcPaperclip = ({ size = 16 }) => <Svg s={size}><path d="M21.4 11.1 12.2 20.3a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5" /></Svg>;
 export const IcPanelRight = ({ size = 17 }) => <Svg s={size}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></Svg>;
+export const IcDownload = ({ size = 16 }) => <Svg s={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></Svg>;
+export const IcEye = ({ size = 15 }) => <Svg s={size}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></Svg>;
