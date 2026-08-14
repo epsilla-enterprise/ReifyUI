@@ -468,7 +468,7 @@ export function SheetGrid({
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={row.id}
+              <tr key={row.id} data-row-id={row.id}
                   style={{
                     ...(rowHeight(row) ? { height: rowHeight(row) } : null),
                     '--shg-clamp': Math.max(1, Math.floor(((rowHeight(row) || 34) - 10) / 18)),
@@ -496,7 +496,7 @@ export function SheetGrid({
                     runCell: onRunCell && !readOnly ? () => onRunCell(row.id, col.id) : null,
                   });
                   return (
-                    <td key={col.id}
+                    <td key={col.id} data-col-id={col.id}
                         className={'shg-cell' + (computed ? ' shg-cell-compute' : '')
                                    + (c.status && computed ? ` shg-cell-${c.status}` : '')
                                    + (peer ? ' shg-cell-peer' : '')}
@@ -711,6 +711,36 @@ function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onA
       </div>
     </PopPortal>
   );
+}
+
+/**
+ * The height each row would need to show its content in full, measured from what is on screen.
+ *
+ * A row is clamped to its height by design — a sheet you cannot scan is not a sheet. But after a
+ * run, the thing a person wants is the answer, and an answer cut off at one line with no way to
+ * see the rest is the grid hiding the work it just paid for. So the host measures and commits a
+ * height, ONCE, rather than the grid guessing continuously.
+ *
+ * Measured, not estimated: `scrollHeight` is what the content actually occupies at this width,
+ * including the file cards. A formula over character counts would be a number nobody derived.
+ *
+ * Returns { rowId: px } for the rows given (or every row), clamped to [min, max].
+ */
+export function fitRowHeights(container, { rowIds, min = 34, max = 320, padding = 12 } = {}) {
+  if (!container) return {};
+  const out = {};
+  const rows = container.querySelectorAll('tr[data-row-id]');
+  for (const tr of rows) {
+    const id = tr.getAttribute('data-row-id');
+    if (rowIds && !rowIds.includes(id)) continue;
+    let tallest = 0;
+    for (const cell of tr.querySelectorAll('td[data-col-id] .shg-val')) {
+      // The value box is clipped to the row; its scrollHeight is the content's real height.
+      tallest = Math.max(tallest, cell.scrollHeight);
+    }
+    if (tallest) out[id] = Math.min(max, Math.max(min, Math.round(tallest + padding)));
+  }
+  return out;
 }
 
 // ── Export helpers (CSV / TSV / array-of-arrays) ─────────────────────────────

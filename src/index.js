@@ -44,7 +44,7 @@ export {
 export { AuthForm } from './auth/AuthForm.jsx';
 export { GoogleButton, GOOGLE_ENABLED } from './auth/GoogleButton.jsx';
 // Shared AI-spreadsheet grid (reusable in the Sheets product AND studio Spaces).
-export { SheetGrid, sheetToDelimited, sheetToAoA } from './sheet/SheetGrid.jsx';
+export { SheetGrid, sheetToDelimited, sheetToAoA, fitRowHeights } from './sheet/SheetGrid.jsx';
 // Files, drawn the same wherever they appear. FileTypeIcon uses react-file-icon when it is
 // installed (an optional peer) and falls back to an extension badge when it is not.
 export { FileTypeIcon, extOf } from './components/FileTypeIcon.jsx';

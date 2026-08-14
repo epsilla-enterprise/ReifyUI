@@ -60,10 +60,10 @@
 /* The cell is the constraint on its own value. This used to carry an inline max-width of the
    column width minus 20, or 400px where the column had no explicit width — a number nothing
    derived, which ellipsised a value long before its own cell ran out of room. */
-.shg-val { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 100%;
+.shg-val { display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; height: 100%;
            width: 100%; min-width: 0; box-sizing: border-box; }
 .shg-val-txt {
-  flex: 1; min-width: 0; color: var(--uic-ink, #111317);
+  flex: 1; min-width: 0; color: var(--uic-ink, #111317); align-self: flex-start;
   /* Wrap to the row's height; the last visible line ellipsizes. Rows at the
      default height clamp to one line (classic sheet behavior); taller rows
      show more lines. --shg-clamp is set per row from its height. */
