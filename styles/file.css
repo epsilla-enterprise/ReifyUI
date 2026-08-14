@@ -23,25 +23,24 @@
   display: block; margin-top: 2px; font-size: 12px; color: var(--uic-mute, #5B5D66);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.uic-filecard-btn {
-  width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px;
+.uic-filecard-dl {
+  width: 34px; height: 34px; flex: 0 0 auto; border-radius: 9px;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid transparent; background: transparent; cursor: pointer;
   color: var(--uic-mute, #5B5D66);
 }
-.uic-filecard-btn:hover { background: var(--uic-brand-faint, #EFF3FF); color: var(--uic-brand, #285AFF); }
-
-/* Compact is a size, not a second component: in a grid cell there is room for a glyph and a name,
-   so the sub-line goes and the buttons appear on hover. Everything stays reachable by keyboard. */
-.uic-filecard.is-compact {
-  gap: 6px; padding: 3px 5px; border-radius: 8px; box-shadow: none;
-  background: var(--uic-brand-faint, #EFF3FF); border-color: transparent;
-  max-width: 100%;
+.uic-filecard-dl:hover { background: var(--uic-brand-faint, #EFF3FF); color: var(--uic-brand, #285AFF); }
+.uic-filecard-open {
+  flex: 0 0 auto; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; padding: 7px 15px; border-radius: 9px;
+  color: var(--uic-brand, #285AFF); background: var(--uic-surface, #FFFFFF);
+  border: 1px solid var(--uic-line, #DDDFE6);
 }
-.uic-filecard.is-compact .uic-filecard-name { font-size: 11.5px; font-weight: 500; }
-.uic-filecard.is-compact .uic-filecard-btn { width: 20px; height: 20px; opacity: 0; }
-.uic-filecard.is-compact:hover .uic-filecard-btn,
-.uic-filecard.is-compact:focus-within .uic-filecard-btn { opacity: 1; }
+.uic-filecard-open:hover { border-color: var(--uic-brand-soft, #E1E9FF); background: var(--uic-brand-faint, #EFF3FF); }
+.uic-filecard-dl:focus-visible, .uic-filecard-open:focus-visible {
+  outline: 2px solid var(--uic-brand, #285AFF); outline-offset: 2px;
+}
+
 
 /* The fallback glyph, for a build without react-file-icon. A file with no icon still has to be
    identifiable, so the extension itself is the icon. */
