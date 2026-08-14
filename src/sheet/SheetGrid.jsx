@@ -297,8 +297,9 @@ export function SheetGrid({
     return cls;
   };
   // The number gutter is FIXED: sized by the digit count of the row total so it never stretches
-  // (an empty grid otherwise splits the table width).
-  const numW = Math.max(40, 24 + String(rows.length || 1).length * 9);
+  // (an empty grid otherwise splits the table width). Wide enough for the number AND the delete
+  // button beside it, both at a size worth aiming at.
+  const numW = Math.max(48, 30 + String(rows.length || 1).length * 9);
   const numStyle = { width: numW, minWidth: numW, maxWidth: numW };
   const rowHeight = (row) => (sizeDraft.row && sizeDraft.row[row.id]) || row.height || undefined;
 

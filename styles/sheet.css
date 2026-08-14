@@ -20,12 +20,16 @@
   position: sticky; left: 0; z-index: 3;
 }
 .shg-corner { z-index: 6; }
-.shg-rownum span { font-size: 11px; }
+.shg-rownum span { font-size: 12.5px; }
+/* A 12x18 target for a destructive action was too small to hit deliberately and too small to
+   read. It is a real button now, and the gutter is wide enough to hold it beside the number. */
 .shg-rowdel {
-  position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
-  border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
-  cursor: pointer; font-size: 14px; line-height: 1; opacity: 0; padding: 2px;
+  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 5px; background: transparent; color: var(--uic-mute-2, #8E9199);
+  cursor: pointer; font-size: 17px; line-height: 1; opacity: 0; padding: 0;
 }
+.shg-rowdel:hover { background: var(--uic-fail-bg, #FEF2F2); color: var(--uic-fail-ink, #B91C1C); }
 .shg-table tr:hover .shg-rowdel { opacity: 1; }
 
 .shg-col { min-width: 180px; max-width: 420px; background: var(--uic-surface, #FFFFFF); position: sticky; top: 0; z-index: 4; }
@@ -48,11 +52,12 @@
 .shg-colrun:hover { background: var(--uic-brand-faint, #EFF3FF); }
 .shg-coldel, .shg-add {
   border: none; background: transparent; color: var(--uic-mute-2, #8E9199);
-  cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 5px; border-radius: 4px;
+  cursor: pointer; font-size: 17px; line-height: 1; border-radius: 5px;
+  width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
 }
 .shg-coldel:hover { background: var(--uic-fail-bg, #FEF2F2); color: var(--uic-fail-ink, #B91C1C); }
 .shg-add:hover { background: var(--uic-line-soft, #EFF1F4); color: var(--uic-ink, #111317); }
-.shg-add-col { width: auto; min-width: 40px; text-align: left; background: var(--uic-surface, #FFFFFF); position: sticky; top: 0; z-index: 4; }
+.shg-add-col { width: auto; min-width: 44px; text-align: center; background: var(--uic-surface, #FFFFFF); position: sticky; top: 0; z-index: 4; }
 
 .shg-cell { cursor: text; background: var(--uic-surface, #FFFFFF); }
 .shg-cell-compute { cursor: default; }
