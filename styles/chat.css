@@ -187,8 +187,18 @@ body.uic-resizing iframe { pointer-events: none; }
 /* The panel is dense by design (13px, no turn gutter, wider bubbles) — the same three overrides
    all four apps wrote into their :root, where they also changed every OTHER chat surface in the
    app. Scoped to the panel, they stop leaking. */
+/* `min-width: 0` is what makes the drag-to-resize actually resize.
+ *
+ * A flex item defaults to `min-width: auto`, which means it can never be narrower than its
+ * content's min-content width. One unbreakable string in the transcript — an agent reporting
+ * `/data/workspaces/hsess<32 hex chars>/dashboard.json` is 60 monospace characters with no break
+ * opportunity — sets a floor of ~550px on the whole pane. The width the drag computes is applied
+ * to flex-basis, the basis is then ignored, and the pane stops moving at that floor while the
+ * handle keeps following the pointer. It reads as "the drag broke", and it appears only in
+ * conversations that happen to contain a long path. */
 .uic-chat { --uic-font-md: 13px; --uic-turn-pad-x: 0px; --uic-bubble-max-w: 88%;
-  flex: 0 0 340px; height: 100vh; display: flex; flex-direction: column; min-height: 0;
+  flex: 0 0 340px; height: 100vh; display: flex; flex-direction: column;
+  min-height: 0; min-width: 0;
   background: var(--uic-surface, #FFFFFF); border-left: 1px solid var(--uic-line, #DDDFE6); }
 @media (max-width: 1180px) { .uic-chat { flex: 0 0 300px; } }
 .uic-chat.is-collapsed { flex: 0 0 44px; }
@@ -269,7 +279,14 @@ body.uic-resizing iframe { pointer-events: none; }
 .uic-chat-msg-files { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
 
 /* ── density inside the panel: the 13px conversation ── */
-.uic-chat .wbx-md { overflow-wrap: break-word; }
+/* `anywhere`, not `break-word`, and the difference is the whole bug above.
+ *
+ * Both let an unbreakable word break rather than overflow, so both LOOK like they fixed it. Only
+ * `anywhere` also reduces the element's min-content width — `break-word` leaves it reporting the
+ * full width of the longest word. That reported width is what a flex item's `min-width: auto`
+ * floors the pane at, so with `break-word` the text wrapped and the pane still would not shrink.
+ * Which is exactly what shipped: the rule was here, and the drag was stuck anyway. */
+.uic-chat .wbx-md { overflow-wrap: anywhere; }
 .uic-chat .wbx-md h1 { font-size: 16px; }
 .uic-chat .wbx-md h2 { font-size: 14.5px; }
 .uic-chat .wbx-md h3 { font-size: 13.5px; }
