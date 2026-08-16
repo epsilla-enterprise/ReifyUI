@@ -47,7 +47,9 @@
 .rui-tl-lane {
   position: relative; flex: 0 0 auto;
   border-bottom: 1px solid var(--uic-line-soft, #EFF1F4);
-  background: var(--uic-surface-2, #F7F8FA);
+  /* Colour first, then the grid over it: a `background` shorthand after a background-image wipes
+     the image, which is how a lane loses its grid and nobody can see why. */
+  background-color: var(--uic-surface-2, #F7F8FA);
 }
 .rui-tl-laneempty {
   margin: 0; padding: 0 10px; line-height: 48px; font-size: 12px;
@@ -128,6 +130,7 @@
 }
 .rui-tl-zoombtn:hover:not(:disabled) { background: var(--uic-line-soft, #EFF1F4); }
 .rui-tl-zoombtn:disabled { opacity: .35; cursor: default; }
+.rui-tl-fit { font-size: 12px; }
 
 @media (prefers-reduced-motion: reduce) {
   .rui-tl-scroll { scroll-behavior: auto; }

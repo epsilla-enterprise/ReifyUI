@@ -133,6 +133,34 @@ export function Timeline({
     }
   }, [pps, zoomStorageKey]);
 
+  /** The zoom at which the whole cut fills the lane, with a margin. */
+  const fitPps = useCallback((seconds) => {
+    const el = scroller.current;
+    if (!el || !(seconds > 0)) return null;
+    const room = el.clientWidth - TL_HEAD_W - 48;
+    if (room <= 0) return null;
+    return clamp(room / seconds, TL_MIN_PPS, TL_MAX_PPS);
+  }, []);
+
+  const fit = useCallback(() => {
+    const v = fitPps(contentSeconds);
+    if (v !== null) { setPps(v); if (scroller.current) scroller.current.scrollLeft = 0; }
+  }, [fitPps, contentSeconds]);
+
+  // FIT ONCE, when there is first something to fit. A 1 s clip at a fixed default is a 26 px
+  // sliver and reads as a broken control rather than a short shot; a 10 minute one runs off the
+  // panel. Fitting on the first content is the difference between a timeline that looks designed
+  // and one that looks unfinished — and it is done ONCE, not on every change, because re-fitting
+  // under someone who has just zoomed in is the control fighting them.
+  const fitted = useRef(false);
+  useLayoutEffect(() => {
+    if (fitted.current || !(contentSeconds > 0)) return;
+    if (zoomStorageKey && typeof window !== 'undefined'
+        && window.localStorage.getItem(zoomStorageKey)) { fitted.current = true; return; }
+    const v = fitPps(contentSeconds);
+    if (v !== null) { fitted.current = true; setPps(v); }
+  }, [contentSeconds, fitPps, zoomStorageKey]);
+
   useLayoutEffect(() => {
     const a = anchor.current;
     if (!a || !scroller.current) return;
@@ -294,6 +322,8 @@ export function Timeline({
                 onClick={() => setZoom(pps / 1.35)} disabled={pps <= TL_MIN_PPS + 1e-6}>−</button>
         <button type="button" className="rui-tl-zoombtn" aria-label="Zoom in"
                 onClick={() => setZoom(pps * 1.35)} disabled={pps >= TL_MAX_PPS - 1e-6}>+</button>
+        <button type="button" className="rui-tl-zoombtn rui-tl-fit" aria-label="Fit to width"
+                title="Fit to width" onClick={fit} disabled={!(contentSeconds > 0)}>⤢</button>
       </div>
     </div>
   );
