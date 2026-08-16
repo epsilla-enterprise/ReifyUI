@@ -75,3 +75,11 @@ export { useTypewriter } from './hooks/useTypewriter.js';
 // Needs styles/panels.css (+ form.css when a panel offers a retry).
 export { Panel } from './components/Panel.jsx';
 export { PanelGrid, packLayout } from './grid/PanelGrid.jsx';
+
+// A timeline: lanes of clips against a ruler, with a playhead and pointer-anchored zoom. Product
+// neutral — it takes {start, duration} and draws them, and never invents a width for a duration
+// nobody measured. Needs styles/timeline.css.
+export {
+  Timeline, majorTickStep, tickLabel, durationLabel as timelineDurationLabel,
+  TL_MIN_PPS, TL_MAX_PPS, TL_DEFAULT_PPS, TL_HEAD_W,
+} from './timeline/Timeline.jsx';

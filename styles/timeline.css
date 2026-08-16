@@ -1,0 +1,134 @@
+/* Timeline — lanes of clips against a ruler, with a playhead. Product-neutral: every colour is a
+   --uic-* token with a fallback that matches this library's own palette, so importing it without
+   a theme layer still looks like one design rather than several.
+
+   The layout rule that matters: the lane gutter is STICKY and the lanes scroll under it. A track
+   label that scrolls away takes the meaning of the row with it, and the first thing anyone does
+   with a timeline longer than the panel is scroll it. */
+
+.rui-tl { position: relative; display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.rui-tl:focus { outline: none; }
+
+.rui-tl-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior-x: contain; }
+.rui-tl-inner { position: relative; min-width: 100%; padding-bottom: 6px; }
+
+.rui-tl-row { display: flex; align-items: stretch; }
+
+/* The gutter. Sticky, opaque, and above the lanes — a label showing through a clip is unreadable
+   exactly when the timeline is busiest. */
+.rui-tl-head {
+  position: sticky; left: 0; z-index: 3; flex: 0 0 76px; width: 76px; box-sizing: border-box;
+  display: inline-flex; align-items: center; gap: 5px; padding: 0 8px;
+  background: var(--uic-surface, #FFFFFF);
+  border-right: 1px solid var(--uic-line, #DDDFE6);
+  font-size: 11px; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--uic-mute, #6B7280);
+}
+.rui-tl-headlbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── ruler ─────────────────────────────────────────────────────────────────────────────────── */
+.rui-tl-rulerrow { position: sticky; top: 0; z-index: 4; background: var(--uic-surface, #FFFFFF); }
+.rui-tl-rulerhead { border-bottom: 1px solid var(--uic-line, #DDDFE6); }
+.rui-tl-ruler {
+  position: relative; height: 22px; flex: 0 0 auto;
+  background-repeat: repeat-x, repeat-x;
+  background-position: left bottom, left bottom;
+  border-bottom: 1px solid var(--uic-line, #DDDFE6);
+  cursor: ew-resize; touch-action: none;
+}
+.rui-tl-ruler:focus-visible { outline: 2px solid var(--uic-brand, #6E55FF); outline-offset: -2px; }
+.rui-tl-ticklbl {
+  position: absolute; top: 2px; padding-left: 4px; font-size: 10px; line-height: 1;
+  color: var(--uic-mute-2, #8E9199); font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── lanes ─────────────────────────────────────────────────────────────────────────────────── */
+.rui-tl-lane {
+  position: relative; flex: 0 0 auto;
+  border-bottom: 1px solid var(--uic-line-soft, #EFF1F4);
+  background: var(--uic-surface-2, #F7F8FA);
+}
+.rui-tl-laneempty {
+  margin: 0; padding: 0 10px; line-height: 48px; font-size: 12px;
+  color: var(--uic-mute-2, #8E9199); white-space: nowrap;
+}
+.rui-tl-empty { margin: 0; padding: 14px 10px; font-size: 12px; color: var(--uic-mute-2, #8E9199); }
+
+/* ── a clip ────────────────────────────────────────────────────────────────────────────────── */
+.rui-tl-clip {
+  position: absolute; top: 4px; bottom: 4px; overflow: hidden; isolation: isolate;
+  border: 1px solid var(--rui-tl-accent, var(--uic-line, #DDDFE6));
+  border-radius: 6px; background: var(--uic-surface, #FFFFFF);
+  cursor: pointer; padding: 0; text-align: left;
+}
+.rui-tl-clip:focus-visible { outline: 2px solid var(--uic-brand, #6E55FF); outline-offset: 1px; }
+.rui-tl-clip.is-selected {
+  border-color: var(--uic-brand, #6E55FF);
+  box-shadow: 0 0 0 1px var(--uic-brand, #6E55FF);
+}
+.rui-tl-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rui-tl-blank {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--uic-mute-2, #8E9199);
+}
+/* Unmeasured: hatched, so "we do not know how long this is" is legible without colour being the
+   only carrier of it — and visibly different from a short clip, which is the confusion a plain
+   narrow block causes. */
+.rui-tl-clip.is-unmeasured {
+  background-image: repeating-linear-gradient(45deg,
+    var(--uic-line-soft, #EFF1F4) 0 5px, transparent 5px 10px);
+}
+.rui-tl-clip.is-failed {
+  border-color: var(--uic-danger-soft, #F3C7C7);
+  background: var(--uic-danger-soft, #FCE9E9);
+}
+
+.rui-tl-badge, .rui-tl-dur {
+  position: absolute; z-index: 1; font-size: 10px; line-height: 1.5; padding: 0 4px;
+  border-radius: 4px; background: rgba(17, 24, 39, .62); color: #fff;
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.rui-tl-badge { top: 3px; left: 3px; font-weight: 600; }
+.rui-tl-dur { bottom: 3px; right: 3px; }
+.rui-tl-name {
+  position: absolute; bottom: 3px; left: 3px; z-index: 1; max-width: calc(100% - 46px);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; padding: 0 4px; border-radius: 4px;
+  background: rgba(17, 24, 39, .62); color: #fff; pointer-events: none;
+}
+.rui-tl-acts {
+  position: absolute; top: 3px; right: 3px; z-index: 2; display: none; gap: 2px;
+  background: var(--uic-surface, #FFFFFF); border-radius: 5px; padding: 1px;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, .18);
+}
+.rui-tl-clip:hover .rui-tl-acts, .rui-tl-clip:focus-within .rui-tl-acts { display: flex; }
+
+.rui-tl-append { position: absolute; top: 4px; bottom: 4px; display: flex; align-items: center; }
+
+/* ── playhead ──────────────────────────────────────────────────────────────────────────────── */
+.rui-tl-playhead {
+  position: absolute; top: 0; bottom: 0; width: 1px; z-index: 5; pointer-events: none;
+  background: var(--uic-brand, #6E55FF);
+}
+.rui-tl-playhead-grip {
+  position: absolute; top: 0; left: -4px; width: 9px; height: 9px; border-radius: 2px;
+  background: var(--uic-brand, #6E55FF);
+}
+
+/* ── zoom ──────────────────────────────────────────────────────────────────────────────────── */
+.rui-tl-zoom {
+  position: absolute; right: 8px; bottom: 8px; z-index: 6; display: flex; gap: 3px;
+  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
+  border-radius: 7px; padding: 2px; box-shadow: 0 1px 3px rgba(17, 24, 39, .1);
+}
+.rui-tl-zoombtn {
+  width: 22px; height: 22px; border: none; background: none; border-radius: 5px; cursor: pointer;
+  color: var(--uic-ink-2, #374151); font-size: 14px; line-height: 1; padding: 0;
+}
+.rui-tl-zoombtn:hover:not(:disabled) { background: var(--uic-line-soft, #EFF1F4); }
+.rui-tl-zoombtn:disabled { opacity: .35; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rui-tl-scroll { scroll-behavior: auto; }
+}

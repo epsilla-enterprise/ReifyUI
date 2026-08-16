@@ -664,3 +664,77 @@ export const PanelGrid: ComponentType<PanelGridProps>;
 /** Gravity applied to a layout you built yourself. Add a panel with `y: Infinity` to put it at
  *  the bottom, then pass the array through this to turn that into a real row. */
 export function packLayout(layout: PanelLayoutItem[], cols?: number): PanelLayoutItem[];
+
+/* ── Timeline ─────────────────────────────────────────────────────────────── */
+
+export interface TimelineClip {
+  id?: string;
+  /** Seconds from the start of the lane. Ignored when the track is sequential (the default),
+   *  where each clip begins where the previous one ended. */
+  start?: number;
+  /** Seconds. Omit or pass null when it has not been MEASURED yet: the clip is then drawn at a
+   *  fixed placeholder width with a hatched fill, and carries no duration label. Never pass a
+   *  guess — a width is a measurement here, and one invented width makes the ruler unreadable. */
+  duration?: number | null;
+  label?: string;
+  /** Tooltip. Falls back to `label`. */
+  title?: string;
+  /** Artwork filling the block — a poster frame, a waveform. */
+  poster?: string;
+  /** Shown centred when there is no poster. */
+  glyph?: ReactNode;
+  /** Small pill at the top left, e.g. an index. */
+  badge?: ReactNode;
+  /** 'failed' tints the block; any other value is yours to style as `.rui-tl-clip.is-<state>`. */
+  state?: string;
+  /** Border colour for this clip, as a CSS colour. */
+  accent?: string;
+}
+
+export interface TimelineTrack {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  clips?: TimelineClip[];
+  /** Default true: clips run back to back and `start` is ignored. False places each clip at its
+   *  own `start`, for a lane that is a set of placed items rather than a sequence. */
+  sequential?: boolean;
+  /** Shown in the lane when it has no clips. Omit to leave the lane blank. */
+  emptyLabel?: string;
+}
+
+export interface TimelineProps {
+  tracks?: TimelineTrack[];
+  /** Seconds. Draws the playhead. */
+  currentTime?: number;
+  /** Scrubbing the ruler or a lane's background calls this with a time in seconds. Omit and the
+   *  timeline is read-only: no scrub target, no slider role. */
+  onSeek?: (seconds: number) => void;
+  onSelectClip?: (clip: TimelineClip, index: number) => void;
+  selectedClipId?: string | null;
+  /** Controls revealed on a clip on hover or focus. */
+  clipActions?: (clip: TimelineClip, index: number) => ReactNode;
+  /** Rendered just past the last clip of a lane — an add button, usually. */
+  laneAppend?: (track: TimelineTrack) => ReactNode;
+  /** localStorage key for the zoom level, so it survives a reload. */
+  zoomStorageKey?: string | null;
+  emptyLabel?: string;
+  className?: string;
+}
+
+/** Lanes of clips against a ruler, with a playhead and pointer-anchored zoom (Cmd/Ctrl+wheel,
+ *  +/−, the buttons). One number — pixels per second — converts time to x for the ruler, the
+ *  clips and the playhead alike, so they cannot disagree. Needs styles/timeline.css. */
+export const Timeline: ComponentType<TimelineProps>;
+
+/** The smallest tick step whose labels stay ~64px apart at this zoom. */
+export function majorTickStep(pps: number): number;
+/** A ruler label: m:ss, with tenths only when the step is sub-second. */
+export function tickLabel(t: number, step?: number): string;
+/** m:ss, and '' for anything unmeasured — never '0:00' for an unknown. */
+export function timelineDurationLabel(seconds: number): string;
+
+export const TL_MIN_PPS: number;
+export const TL_MAX_PPS: number;
+export const TL_DEFAULT_PPS: number;
+export const TL_HEAD_W: number;
