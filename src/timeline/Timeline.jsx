@@ -426,7 +426,9 @@ export function Timeline({
 
           {rows.map((track) => (
             <div className="rui-tl-row" key={track.id}>
-              <div className="rui-tl-head" title={track.label}>
+              {/* A lane whose name does not explain it can say what it is for. "Layer 2" means
+                  nothing until something says it is drawn over Layer 1. */}
+              <div className="rui-tl-head" title={track.title || track.label}>
                 {track.icon}
                 <span className="rui-tl-headlbl">{track.label}</span>
               </div>
