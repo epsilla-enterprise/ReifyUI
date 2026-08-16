@@ -198,3 +198,27 @@ body.rui-tl-gesturing { cursor: ew-resize !important; user-select: none !importa
 .rui-tl-clip.is-live { box-shadow: 0 4px 14px rgba(17, 24, 39, .22); z-index: 4; }
 .rui-tl-clip { cursor: grab; }
 .rui-tl-clip.is-live { cursor: grabbing; }
+
+/* ── dropping ──────────────────────────────────────────────────────────────────────────────────
+   A lane says it will take the drop by lighting up, and a marker shows WHERE it will land — a
+   highlight alone tells you the lane accepts it and nothing about the position, which is the half
+   people actually care about. */
+.rui-tl-lane.is-dropping {
+  background-color: var(--uic-brand-50, #F3F0FF);
+  box-shadow: inset 0 0 0 1px var(--uic-brand-soft, #CFC6FF);
+}
+.rui-tl-dropmark {
+  position: absolute; top: 2px; bottom: 2px; width: 2px; border-radius: 1px;
+  background: var(--uic-brand, #6E55FF); pointer-events: none; z-index: 3;
+}
+.rui-tl-newlane {
+  position: relative; flex: 0 0 auto; height: 30px; margin: 4px 0 2px;
+  border: 1px dashed var(--uic-line, #DDDFE6); border-radius: 7px;
+  display: flex; align-items: center; padding-left: 10px;
+}
+.rui-tl-newlane.is-dropping {
+  border-color: var(--uic-brand, #6E55FF); background: var(--uic-brand-50, #F3F0FF);
+}
+.rui-tl-newlbl { font-size: 11px; color: var(--uic-mute-2, #8E9199); pointer-events: none; }
+.rui-tl-newlane.is-dropping .rui-tl-newlbl { color: var(--uic-brand, #6E55FF); }
+.rui-tl-newhead { border-right-color: transparent; background: transparent; }

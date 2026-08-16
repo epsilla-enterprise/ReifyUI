@@ -724,6 +724,16 @@ export interface TimelineProps {
   clipActions?: (clip: TimelineClip, index: number) => ReactNode;
   /** Rendered just past the last clip of a lane — an add button, usually. */
   laneAppend?: (track: TimelineTrack) => ReactNode;
+  /** Something was dropped. `trackId` is null when it landed on the new-lane strip, which is how
+   *  a layer is created by dropping rather than by a button nobody finds. `index` is the slot in
+   *  a sequential lane; `seconds` is where in time it landed. */
+  onDropClip?: (payload: unknown,
+                at: { trackId: string | null; seconds: number; index: number }) => void;
+  /** Reads a drag's payload out of a DataTransfer. Return null to refuse — that is what keeps a
+   *  lane from lighting up for something this timeline cannot take. */
+  readDrop?: (dt: DataTransfer) => unknown | null;
+  /** Text on the new-lane strip. Omit and no strip is drawn. */
+  newLaneLabel?: string;
   /** localStorage key for the zoom level, so it survives a reload. */
   zoomStorageKey?: string | null;
   emptyLabel?: string;

@@ -119,6 +119,15 @@ export function Timeline({
   /** Sequential lane: (clip, toIndex, track). Placed lane: (clip, newStartSeconds, track). */
   onMoveClip,
   onDeleteClip,
+  /** Something was dropped on a lane: (payload, {trackId, seconds, index}). `trackId` is null when
+   *  it landed on the NEW-LANE strip below the last lane, which is how a layer gets created by
+   *  dropping rather than by a button nobody finds. */
+  onDropClip,
+  /** Reads the drag's payload out of a DataTransfer. Return null to refuse the drop, which is
+   *  what turns the lane's highlight off for things this timeline cannot take. */
+  readDrop,
+  /** Text on the strip below the last lane. Omit and no such strip is drawn. */
+  newLaneLabel,
   laneAppend,
   zoomStorageKey = null,
   snapStorageKey = null,
@@ -142,6 +151,9 @@ export function Timeline({
   /** What the gesture is doing right now: live preview geometry + annotation. */
   const [drag, setDrag] = useState(null);
   const anchor = useRef(null);
+  /** Which lane the pointer is over during a drag, and where in time. Drawn as a marker so a drop
+   *  lands where it was aimed rather than wherever the list decides. */
+  const [dropAt, setDropAt] = useState(null);
 
   const rows = useMemo(
     () => tracks.map((t) => ({ ...t, sequential: t.sequential !== false,
@@ -418,8 +430,33 @@ export function Timeline({
                 {track.icon}
                 <span className="rui-tl-headlbl">{track.label}</span>
               </div>
-              <div className="rui-tl-lane" style={{ width: laneW, height: LANE_H }}
-                   onPointerDown={(e) => { if (e.target === e.currentTarget) onScrub(e); }}>
+              <div
+                className={'rui-tl-lane' + (dropAt?.trackId === track.id ? ' is-dropping' : '')}
+                style={{ width: laneW, height: LANE_H }}
+                onPointerDown={(e) => { if (e.target === e.currentTarget) onScrub(e); }}
+                onDragOver={onDropClip ? (e) => {
+                  if (!readDrop || readDrop(e.dataTransfer) === null) return;
+                  e.preventDefault();                    // preventDefault IS the "yes, drop here"
+                  e.dataTransfer.dropEffect = 'copy';
+                  setDropAt({ trackId: track.id, t: timeAt(e.clientX) });
+                } : undefined}
+                onDragLeave={onDropClip ? (e) => {
+                  if (e.currentTarget.contains(e.relatedTarget)) return;
+                  setDropAt((d) => (d?.trackId === track.id ? null : d));
+                } : undefined}
+                onDrop={onDropClip ? (e) => {
+                  const payload = readDrop?.(e.dataTransfer) ?? null;
+                  setDropAt(null);
+                  if (payload === null) return;
+                  e.preventDefault();
+                  const t = timeAt(e.clientX);
+                  // Where in the ORDER it landed, for a lane that is a sequence.
+                  let index = 0;
+                  for (const other of track.laid) {
+                    if (t > other.t0 + (other.w / pps) / 2) index += 1;
+                  }
+                  onDropClip(payload, { trackId: track.id, seconds: t, index });
+                } : undefined}>
                 {track.laid.length === 0 && track.emptyLabel && (
                   <p className="rui-tl-laneempty">{track.emptyLabel}</p>
                 )}
@@ -435,6 +472,10 @@ export function Timeline({
                     snapTimes={snapTimes}
                   />
                 ))}
+                {dropAt?.trackId === track.id && (
+                  <span className="rui-tl-dropmark" style={{ left: dropAt.t * pps }}
+                        aria-hidden="true" />
+                )}
                 {laneAppend && (
                   <span className="rui-tl-append"
                         style={{ left: track.laid.reduce((n, x) => Math.max(n, x.x + x.w), 0) + 6 }}>
@@ -444,6 +485,38 @@ export function Timeline({
               </div>
             </div>
           ))}
+
+          {/* Drop here and a lane is created. It only exists when a drop is possible at all, and
+              it says what it does — a bare dashed rectangle is a thing people avoid rather than
+              aim at. */}
+          {onDropClip && newLaneLabel && (
+            <div className="rui-tl-row">
+              <div className="rui-tl-head rui-tl-newhead" aria-hidden="true" />
+              <div
+                className={'rui-tl-newlane' + (dropAt?.trackId === null ? ' is-dropping' : '')}
+                style={{ width: laneW }}
+                onDragOver={(e) => {
+                  if (!readDrop || readDrop(e.dataTransfer) === null) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                  setDropAt({ trackId: null, t: timeAt(e.clientX) });
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget)) return;
+                  setDropAt((d) => (d?.trackId === null ? null : d));
+                }}
+                onDrop={(e) => {
+                  const payload = readDrop?.(e.dataTransfer) ?? null;
+                  setDropAt(null);
+                  if (payload === null) return;
+                  e.preventDefault();
+                  onDropClip(payload, { trackId: null, seconds: timeAt(e.clientX), index: 0 });
+                }}
+              >
+                <span className="rui-tl-newlbl">{newLaneLabel}</span>
+              </div>
+            </div>
+          )}
 
           {/* A snap guide, drawn only while a gesture is actually locked onto something. */}
           {drag?.guide != null && (
