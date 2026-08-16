@@ -551,12 +551,21 @@ function Clip({ l, track, pps, selected, drag, onSelect, beginGesture, onTrim, o
       onPointerDown={startMove}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
     >
-      {clip.poster
-        ? <span className="rui-tl-strip" style={{
-            backgroundImage: `url("${String(clip.poster).replace(/"/g, '\\"')}")`,
-            backgroundSize: `${tileW}px 100%`,
-          }} />
-        : <span className="rui-tl-blank" aria-hidden="true">{clip.glyph}</span>}
+      {/* A poster tiles as a strip. With no poster but a playable file, the FILE's own first
+          frame is shown — `preload="metadata"` paints it without fetching the whole clip, and it
+          is a real frame of the real thing rather than a stand-in. Only when there is neither
+          does the block fall back to a glyph, which claims nothing. */}
+      {clip.poster ? (
+        <span className="rui-tl-strip" style={{
+          backgroundImage: `url("${String(clip.poster).replace(/"/g, '\\"')}")`,
+          backgroundSize: `${tileW}px 100%`,
+        }} />
+      ) : clip.video ? (
+        <video className="rui-tl-frame" src={clip.video} preload="metadata" muted playsInline
+               tabIndex={-1} aria-hidden="true" />
+      ) : (
+        <span className="rui-tl-blank" aria-hidden="true">{clip.glyph}</span>
+      )}
 
       {clip.badge && <span className="rui-tl-badge">{clip.badge}</span>}
       {known && width > 46 && <span className="rui-tl-dur">{durationLabel(clip.duration)}</span>}

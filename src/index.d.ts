@@ -679,8 +679,12 @@ export interface TimelineClip {
   label?: string;
   /** Tooltip. Falls back to `label`. */
   title?: string;
-  /** Artwork filling the block — a poster frame, a waveform. */
+  /** Artwork filling the block, tiled at a fixed tile size — a poster frame, a waveform. */
   poster?: string;
+  /** A playable file. Used only when there is no `poster`: its FIRST FRAME is shown, which is a
+   *  real frame of the real clip rather than a stand-in. Loaded with preload="metadata", so the
+   *  whole file is not fetched to paint one frame. */
+  video?: string;
   /** Shown centred when there is no poster. */
   glyph?: ReactNode;
   /** Small pill at the top left, e.g. an index. */

@@ -73,6 +73,12 @@
 .rui-tl-strip {
   position: absolute; inset: 0; background-repeat: repeat-x; background-position: left center;
 }
+/* The file's own first frame, when there is no poster. Pointer events off: the clip is the
+   target, and a <video> would otherwise swallow the drag that trims it. */
+.rui-tl-frame {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  pointer-events: none; background: #0B0D12;
+}
 .rui-tl-blank {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: var(--uic-mute-2, #8E9199);
