@@ -60,6 +60,7 @@
 /* ── a clip ────────────────────────────────────────────────────────────────────────────────── */
 .rui-tl-clip {
   position: absolute; top: 4px; bottom: 4px; overflow: hidden; isolation: isolate;
+  touch-action: none;
   border: 1px solid var(--rui-tl-accent, var(--uic-line, #DDDFE6));
   border-radius: 6px; background: var(--uic-surface, #FFFFFF);
   cursor: pointer; padding: 0; text-align: left;
@@ -69,7 +70,9 @@
   border-color: var(--uic-brand, #6E55FF);
   box-shadow: 0 0 0 1px var(--uic-brand, #6E55FF);
 }
-.rui-tl-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rui-tl-strip {
+  position: absolute; inset: 0; background-repeat: repeat-x; background-position: left center;
+}
 .rui-tl-blank {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: var(--uic-mute-2, #8E9199);
@@ -118,20 +121,74 @@
   background: var(--uic-brand, #6E55FF);
 }
 
-/* ── zoom ──────────────────────────────────────────────────────────────────────────────────── */
-.rui-tl-zoom {
-  position: absolute; right: 8px; bottom: 8px; z-index: 6; display: flex; gap: 3px;
-  background: var(--uic-surface, #FFFFFF); border: 1px solid var(--uic-line, #DDDFE6);
-  border-radius: 7px; padding: 2px; box-shadow: 0 1px 3px rgba(17, 24, 39, .1);
+/* ── toolbar ───────────────────────────────────────────────────────────────────────────────
+   A bar, not a pill floating over the lanes. Controls that hover in the corner of the content
+   read as debris; these are the timeline's own commands and they belong in its chrome. */
+.rui-tl-bar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 5px 8px;
+  border-bottom: 1px solid var(--uic-line, #DDDFE6);
+  background: var(--uic-surface, #FFFFFF);
 }
-.rui-tl-zoombtn {
-  width: 22px; height: 22px; border: none; background: none; border-radius: 5px; cursor: pointer;
-  color: var(--uic-ink-2, #374151); font-size: 14px; line-height: 1; padding: 0;
+.rui-tl-btn {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px;
+  border: 1px solid var(--uic-line, #DDDFE6); border-radius: 6px;
+  background: var(--uic-surface, #FFFFFF); color: var(--uic-ink-2, #374151);
+  font: inherit; font-size: 12px; line-height: 1; cursor: pointer;
 }
-.rui-tl-zoombtn:hover:not(:disabled) { background: var(--uic-line-soft, #EFF1F4); }
-.rui-tl-zoombtn:disabled { opacity: .35; cursor: default; }
-.rui-tl-fit { font-size: 12px; }
+.rui-tl-btn:hover:not(:disabled) { background: var(--uic-line-soft, #EFF1F4); }
+.rui-tl-btn:disabled { opacity: .4; cursor: default; }
+.rui-tl-btn:focus-visible { outline: 2px solid var(--uic-brand, #6E55FF); outline-offset: 1px; }
+/* On/off is a state, so it is a word AND a colour, never colour alone. */
+.rui-tl-btn.is-on {
+  border-color: var(--uic-brand, #6E55FF); color: var(--uic-brand, #6E55FF);
+  background: var(--uic-brand-50, #F3F0FF);
+}
+.rui-tl-icon { width: 26px; padding: 0; justify-content: center; font-size: 14px; }
+.rui-tl-time {
+  margin-left: 4px; font-size: 12px; color: var(--uic-mute, #6B7280);
+  font-variant-numeric: tabular-nums;
+}
+.rui-tl-spacer { flex: 1; }
+
+/* ── gesture feedback ──────────────────────────────────────────────────────────────────────── */
+/* The cursor belongs to the DRAG, not the handle: without this it flickers back to an arrow the
+   moment the pointer leaves the 10px grip, and dragging over the page selects text. */
+body.rui-tl-gesturing { cursor: ew-resize !important; user-select: none !important; }
+
+.rui-tl-guide {
+  position: absolute; top: 0; bottom: 0; width: 1px; z-index: 6; pointer-events: none;
+  background: var(--uic-ok, #10B981);
+}
+.rui-tl-annot {
+  position: absolute; top: 26px; z-index: 7; transform: translateX(-50%);
+  padding: 2px 6px; border-radius: 5px; font-size: 11px; white-space: nowrap;
+  background: rgba(17, 24, 39, .86); color: #fff; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rui-tl-scroll { scroll-behavior: auto; }
 }
+
+/* ── trim handles ──────────────────────────────────────────────────────────────────────────────
+   10px targets with a 3px visible grip: the grip is what you see, the target is what you hit.
+   They appear on hover and on selection, so a lane at rest is clips rather than controls. */
+.rui-tl-trim {
+  position: absolute; top: 0; bottom: 0; width: 10px; z-index: 3;
+  cursor: ew-resize; opacity: 0; touch-action: none;
+}
+.rui-tl-trim.l { left: 0; }
+.rui-tl-trim.r { right: 0; }
+.rui-tl-trim::after {
+  content: ''; position: absolute; top: 5px; bottom: 5px; width: 3px; border-radius: 2px;
+  background: #fff; box-shadow: 0 0 0 1px rgba(17, 24, 39, .35);
+}
+.rui-tl-trim.l::after { left: 3px; }
+.rui-tl-trim.r::after { right: 3px; }
+.rui-tl-clip:hover .rui-tl-trim,
+.rui-tl-clip.is-selected .rui-tl-trim { opacity: .9; }
+.rui-tl-trim:hover { opacity: 1; }
+/* Mid-gesture the clip follows the pointer: it should read as lifted, and it must not animate. */
+.rui-tl-clip.is-live { box-shadow: 0 4px 14px rgba(17, 24, 39, .22); z-index: 4; }
+.rui-tl-clip { cursor: grab; }
+.rui-tl-clip.is-live { cursor: grabbing; }
