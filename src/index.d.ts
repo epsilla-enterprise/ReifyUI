@@ -691,6 +691,10 @@ export interface TimelineClip {
   badge?: ReactNode;
   /** 'failed' tints the block; any other value is yours to style as `.rui-tl-clip.is-<state>`. */
   state?: string;
+  /** Seconds still available BEYOND the current window on each side — how far a trim may pull the
+   *  edge back OUT. Without it an edge can only come in, and one stray drag makes a clip
+   *  unrecoverable even though the film is still in the file. */
+  headroom?: { start?: number; end?: number };
   /** Border colour for this clip, as a CSS colour. */
   accent?: string;
 }

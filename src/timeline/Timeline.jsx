@@ -485,13 +485,21 @@ function Clip({ l, track, pps, selected, drag, onSelect, beginGesture, onTrim, o
 
   const startTrim = (e, edge) => {
     if (!onTrim || !known) return;
+    // HOW FAR THIS EDGE CAN GO BACK OUT, not just in. A trim clamped to the clip's CURRENT length
+    // can only ever shorten, so one stray drag makes a shot unrecoverable — the film is still in
+    // the file and the UI will not give it back. `headroom` is what the host says is left on each
+    // side beyond the present window; absent, the edge can only come in, which is the old
+    // behaviour and the honest default when nobody has said otherwise.
+    const room = clip.headroom || {};
+    const outward = Math.max(0, Number(edge === 'end' ? room.end : room.start) || 0);
+    const maxDur = clip.duration + outward;
     beginGesture(e, {
       kind: 'trim',
       snapTimes,
       preview: (t) => {
         const dur = edge === 'end'
-          ? clamp(t - t0, TL_MIN_CLIP_S, clip.duration)
-          : clamp((t0 + clip.duration) - t, TL_MIN_CLIP_S, clip.duration);
+          ? clamp(t - t0, TL_MIN_CLIP_S, maxDur)
+          : clamp((t0 + clip.duration) - t, TL_MIN_CLIP_S, maxDur);
         const nextW = dur * pps;
         const nextLeft = edge === 'end' ? x : x + (w - nextW);
         return { clipId: clip.id, width: nextW, left: nextLeft,
@@ -500,8 +508,8 @@ function Clip({ l, track, pps, selected, drag, onSelect, beginGesture, onTrim, o
       },
       commit: (t) => {
         const dur = edge === 'end'
-          ? clamp(t - t0, TL_MIN_CLIP_S, clip.duration)
-          : clamp((t0 + clip.duration) - t, TL_MIN_CLIP_S, clip.duration);
+          ? clamp(t - t0, TL_MIN_CLIP_S, maxDur)
+          : clamp((t0 + clip.duration) - t, TL_MIN_CLIP_S, maxDur);
         if (Math.abs(dur - clip.duration) > 1e-3) onTrim(clip, edge, dur, track);
       },
     });
