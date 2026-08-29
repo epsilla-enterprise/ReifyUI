@@ -1,5 +1,9 @@
 // SheetGrid — the reusable AI-spreadsheet grid.
 //
+// CLAMP_LINE / CLAMP_PAD are the line height and the vertical padding a cell is laid out with;
+// they turn a measured row height into a number of lines for `--shg-clamp`, which host CSS uses
+// for line-clamp.
+//
 // Product-agnostic: it renders a sheet JSON and calls back for edits/runs. All I/O is injected —
 // this file has no product API.
 //
@@ -23,7 +27,13 @@
 //
 // Editing is optimistic: local edits call onChange with the next sheet; the host persists and
 // hands truth back through `sheet`.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+const CLAMP_LINE = 18;
+const CLAMP_PAD = 10;
+// A cell says which of its children is the clamped text by marking it. Without a mark the cell IS
+// its text (the built-in value cell), which is the right default.
+const CLAMP_TEXT_SEL = '[data-shg-clamp-text]';
 import { createPortal } from 'react-dom';
 
 const cellKey = (rowId, colId) => `${rowId}:${colId}`;
@@ -209,6 +219,7 @@ export function SheetGrid({
   const [dropAt, setDropAt] = useState(null);     // {kind, id, after} current drop slot
   const inputRef = useRef(null);
   const dragRef = useRef(null);
+  const gridRef = useRef(null);
 
   // An unknown type still renders — as plain text, editable. Refusing to draw a column because
   // its type is unfamiliar would hide the person's data from them.
@@ -304,6 +315,64 @@ export function SheetGrid({
   const rowHeight = (row) => (sizeDraft.row && sizeDraft.row[row.id]) || row.height || undefined;
 
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+
+  // How many lines of text a row has room for.
+  //
+  // This used to be derived from the row's STORED height, falling back to 34px — one line — for
+  // any row that had never been sized. But a row is very often tall because of a NEIGHBOURING
+  // column: an agent cell with files under its answer, or simply a taller one. Every other cell
+  // in that row then showed a single ellipsised line with the rest of the row empty beneath it,
+  // which is what the space was there for.
+  //
+  // Measured with every clamp forced back to one line first. That is the whole trick: the basis
+  // has to be the height the row's OTHER content needs, never the height the clamp itself just
+  // produced. Deriving it from the rendered height directly feeds back — more lines makes the
+  // row taller, which allows more lines — and the rows grow without bound (92 → 137 → 182 → …).
+  useLayoutEffect(() => {
+    const rowsEl = gridRef.current?.querySelectorAll('tbody tr[data-row-id]');
+    if (!rowsEl || !rowsEl.length) return;
+    const trs = Array.from(rowsEl);
+
+    // 1. Put every clamp back to one line, so what we measure next is the height the row's other
+    //    content NEEDS rather than the height the last clamp happened to produce.
+    for (const tr of trs) {
+      tr.style.removeProperty('--shg-clamp');
+      for (const td of tr.children) td.style.setProperty('--shg-clamp', '1');
+    }
+
+    // 2. Measure, in one pass: the row, and per cell whatever sits ALONGSIDE its text (an agent
+    //    cell keeps its files under its answer). Measured on the text's own box, which sizes to
+    //    its content — the <td> is stretched to the row and would report the row height for every
+    //    cell, making them all look equally full.
+    const plan = trs.map((tr) => ({
+      base: tr.offsetHeight,
+      cells: Array.from(tr.children).map((td) => {
+        const txt = td.querySelector(CLAMP_TEXT_SEL);
+        const box = txt && txt.parentElement;
+        return { td, extra: box ? Math.max(0, box.scrollHeight - txt.offsetHeight) : 0 };
+      }),
+    }));
+
+    // 3. Give every cell in a row the same amount of room for text.
+    //
+    //    `floor` is the line count the row's own height already allows. `need` is how tall the row
+    //    must be for the cell carrying the most alongside its text — the one with files under it —
+    //    to still get that many lines. Every other cell then fills THAT height, which is the whole
+    //    point: a cell with nothing under its text was showing one ellipsised line beside a
+    //    neighbour whose files made the row four times taller.
+    //
+    //    extra + lines*LINE <= need by construction, so no cell outgrows the height this was
+    //    measured against, and `base` is always re-measured at one line — so a second pass
+    //    computes the same answer instead of ratcheting the rows upward.
+    for (const { base, cells } of plan) {
+      const floorLines = Math.max(1, Math.floor((base - CLAMP_PAD) / CLAMP_LINE));
+      const need = Math.max(...cells.map((c) => c.extra)) + floorLines * CLAMP_LINE + CLAMP_PAD;
+      for (const { td, extra } of cells) {
+        const lines = Math.max(floorLines, Math.floor((need - extra - CLAMP_PAD) / CLAMP_LINE));
+        td.style.setProperty('--shg-clamp', String(lines));
+      }
+    }
+  });
 
   const mutate = (fn) => {
     if (readOnly || !onChange) return;
@@ -431,7 +500,7 @@ export function SheetGrid({
   };
 
   return (
-    <div className="shg">
+    <div className="shg" ref={gridRef}>
       <div className="shg-scroll">
         <table className="shg-table">
           <thead>
@@ -470,10 +539,7 @@ export function SheetGrid({
           <tbody>
             {rows.map((row, ri) => (
               <tr key={row.id} data-row-id={row.id}
-                  style={{
-                    ...(rowHeight(row) ? { height: rowHeight(row) } : null),
-                    '--shg-clamp': Math.max(1, Math.floor(((rowHeight(row) || 34) - 10) / 18)),
-                  }}>
+                  style={rowHeight(row) ? { height: rowHeight(row) } : undefined}>
                 <td className={'shg-rownum' + dndClass('row', row.id)} style={numStyle}
                     title="Drag to reorder" {...dndProps('row', row.id)}>
                   <span>{ri + 1}</span>
