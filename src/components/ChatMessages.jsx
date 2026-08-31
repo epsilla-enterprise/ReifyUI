@@ -21,7 +21,12 @@ import { ToolGroup } from './ToolSteps.jsx';
 export const DEFAULT_STATUS_LABELS = {
   failed: '✕ Failed — see the output above for the reason',
   cancelled: '◼ Stopped by you',
-  incomplete: '◔ Hit its step or time limit — Continue to resume',
+  // Claims only what is true of every cause: an incomplete turn may have hit its step or time
+  // budget, or been cut mid-flight (a replica restart under a live turn settles as incomplete).
+  // Asserting "step or time limit" for all of them sent an operator debugging a limit that was
+  // never reached. A host that knows the actual cause says so in its own chrome (statusLabels /
+  // assistantFooter).
+  incomplete: '◔ Stopped before finishing — Continue to resume',
 };
 
 const defaultMarkdown = (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
