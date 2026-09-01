@@ -320,3 +320,9 @@ body.uic-resizing iframe { pointer-events: none; }
   /* Dragging the divider is meaningless once the panel floats over the page. */
   body:has(.uic-chat:not(.is-collapsed)) .uic-vresize { display: none; }
 }
+
+/* ── Composer tray (Composer.jsx `tray`) ──
+   Inside the card, under the action row, on the SAME surface — no divider band, no tinted
+   strip: the wireframe's "one box" reading. Wraps on narrow widths. */
+.uic-composer-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 2px 2px 4px; }

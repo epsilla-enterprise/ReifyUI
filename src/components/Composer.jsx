@@ -7,6 +7,10 @@
 //   accessoriesLeft    nodes before the flexible spacer (attach button, model select, mic, …)
 //   accessoriesRight   nodes after the spacer, before the send button
 //   renderSend()       replaces the default send button entirely
+//   tray               node rendered INSIDE the card, under the action row — one seamless
+//                      surface, no divider band. This is where a product puts the row that
+//                      belongs to the message being composed (Arena's harness+model chips,
+//                      a template picker, a recipient list) rather than to the app chrome.
 //   classNames         { root, input, row } — each REPLACES the default class when provided,
 //                      so a product can restyle wholesale without fighting the package CSS
 //
@@ -35,6 +39,7 @@ export function Composer(props) {
     // one is given — so the field announces a different name every few seconds.
     inputAriaLabel,
     attachments,
+    tray,
     accessoriesLeft,
     accessoriesRight,
     renderSend,
@@ -89,6 +94,7 @@ export function Composer(props) {
           </button>
         )}
       </div>
+      {tray ? <div className="uic-composer-tray">{tray}</div> : null}
     </div>
   );
 }
