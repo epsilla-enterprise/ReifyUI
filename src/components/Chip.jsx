@@ -18,9 +18,13 @@ import { IcX } from './icons.jsx';
  * onClick    makes the chip itself a button; unselected + clickable renders as an open slot
  * onRemove   adds a trailing ✕ button; removeLabel is REQUIRED with it, because "✕" alone tells
  *            a screen reader nothing about which of five chips it removes
+ * trailing   a node rendered between the label and the ✕ — a compact control the chip carries,
+ *            e.g. a per-route model <select> in a comparison bar. It is the CALLER's control:
+ *            the chip never wraps it in its own press target, so a select inside a clickable
+ *            chip still opens instead of triggering the chip.
  */
 export function Chip(props) {
-  const { label, icon, title, selected = false, onClick, onRemove, removeLabel, className } = props;
+  const { label, icon, title, selected = false, onClick, onRemove, removeLabel, trailing, className } = props;
   const cls = ['uic-chip',
     selected ? 'is-selected' : '',
     onClick && !selected ? 'is-open' : '',
@@ -35,10 +39,13 @@ export function Chip(props) {
 
   // A chip that is both pressable and removable is two controls, so the outer element stays a
   // plain span and the press target becomes its own button — never a button inside a button.
+  const trail = trailing ? <span className="uic-chip-tr">{trailing}</span> : null;
+
   if (onClick && onRemove) {
     return (
       <span className={cls} title={title}>
         <button type="button" className="uic-chip-press" onClick={onClick}>{body}</button>
+        {trail}
         <button type="button" className="uic-chip-x" aria-label={removeLabel} onClick={onRemove}>
           <IcX size={12} />
         </button>
@@ -46,11 +53,22 @@ export function Chip(props) {
     );
   }
   if (onClick) {
+    // trailing needs its own interactivity, and a control inside a <button> is invalid HTML the
+    // browser un-nests unpredictably — so a clickable chip that carries one keeps the split form.
+    if (trailing) {
+      return (
+        <span className={cls} title={title}>
+          <button type="button" className="uic-chip-press" onClick={onClick}>{body}</button>
+          {trail}
+        </span>
+      );
+    }
     return <button type="button" className={cls} title={title} onClick={onClick}>{body}</button>;
   }
   return (
     <span className={cls} title={title}>
       {body}
+      {trail}
       {onRemove ? (
         <button type="button" className="uic-chip-x" aria-label={removeLabel} onClick={onRemove}>
           <IcX size={12} />
