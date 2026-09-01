@@ -328,6 +328,8 @@ body.uic-resizing iframe { pointer-events: none; }
   padding: 2px 2px 4px; }
 
 /* ── Composer inline line (Composer.jsx `inline`) ── one row: accessories, textarea, send.
-   align-items flex-end keeps the buttons on the bottom edge while the textarea grows. */
-.uic-composer-line { display: flex; align-items: flex-end; gap: 8px; }
+   Centered, not flex-end: a single-line textarea's text must sit on the buttons' axis, and
+   bottom-pinning left the text visibly below them (measured). Multiline drafts keep the
+   buttons centered on the grown box, which is the common chat-input behavior. */
+.uic-composer-line { display: flex; align-items: center; gap: 8px; }
 .uic-composer-line textarea { flex: 1; min-width: 0; }
