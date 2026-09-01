@@ -7,6 +7,9 @@
 //   accessoriesLeft    nodes before the flexible spacer (attach button, model select, mic, …)
 //   accessoriesRight   nodes after the spacer, before the send button
 //   renderSend()       replaces the default send button entirely
+//   inline             single-line layout: accessories, textarea and send share ONE row,
+//                      vertically aligned (the classic chat input). Buttons stick to the
+//                      bottom edge as the textarea grows, so multiline still reads right.
 //   tray               node rendered INSIDE the card, under the action row — one seamless
 //                      surface, no divider band. This is where a product puts the row that
 //                      belongs to the message being composed (Arena's harness+model chips,
@@ -32,6 +35,7 @@ export function Composer(props) {
     placeholder,
     rows = 1,
     autoGrow = true,
+    inline = false,
     maxRows = 15,
     autoFocus,
     // The composer on a landing page often has an ANIMATING placeholder (a typewriter cycling
@@ -60,6 +64,40 @@ export function Composer(props) {
     el.style.height = Math.min(el.scrollHeight, max) + 'px';
     el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
   }, [value, autoGrow, maxRows, taRef]);
+
+  const sendEl = renderSend ? renderSend() : (
+    <button type="button" className="uic-send" disabled={sendDisabled} onClick={() => onSend()} aria-label="Send message">
+      <IcSend />
+    </button>
+  );
+
+  if (inline) {
+    return (
+      <div className={classNames.root ?? 'wbx-composer'}>
+        {attachments}
+        <div className="uic-composer-line">
+          {accessoriesLeft}
+          <textarea
+            ref={taRef}
+            className={classNames.input ?? 'wbx-composer-input'}
+            rows={rows}
+            value={value}
+            placeholder={placeholder}
+            aria-label={inputAriaLabel || placeholder}
+            disabled={disabled}
+            autoFocus={autoFocus}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
+            }}
+          />
+          {accessoriesRight}
+          {sendEl}
+        </div>
+        {tray ? <div className="uic-composer-tray">{tray}</div> : null}
+      </div>
+    );
+  }
 
   return (
     <div className={classNames.root ?? 'wbx-composer'}>

@@ -326,3 +326,8 @@ body.uic-resizing iframe { pointer-events: none; }
    strip: the wireframe's "one box" reading. Wraps on narrow widths. */
 .uic-composer-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   padding: 2px 2px 4px; }
+
+/* ── Composer inline line (Composer.jsx `inline`) ── one row: accessories, textarea, send.
+   align-items flex-end keeps the buttons on the bottom edge while the textarea grows. */
+.uic-composer-line { display: flex; align-items: flex-end; gap: 8px; }
+.uic-composer-line textarea { flex: 1; min-width: 0; }
