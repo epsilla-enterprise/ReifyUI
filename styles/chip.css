@@ -84,3 +84,6 @@ button.uic-chip:hover { border-color: var(--uic-brand, #285AFF); color: var(--ui
 .uic-pop-item:disabled { opacity: .5; cursor: default; }
 .uic-pop-item:disabled:hover { background: none; }
 .uic-pop-item:focus-visible { outline: 2px solid var(--uic-brand, #285AFF); outline-offset: -2px; }
+/* The press target of a split chip (label + trailing control + ✕) answers hover like the
+   one-piece button chip does. */
+.uic-chip-press:hover { color: var(--uic-brand-ink, #1641D8); }

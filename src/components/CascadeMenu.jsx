@@ -20,7 +20,9 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Popover } from './Popover.jsx';
 import { SearchField } from './SearchField.jsx';
-import { Chevron } from './icons.jsx';
+import { Chevron, Svg } from './icons.jsx';
+
+const Tick = () => <Svg s={14}><path d="M20 6 9 17l-5-5" /></Svg>;
 
 const FILTER_PAST = 8; // 'auto': a filter field appears once the first column is longer than this
 
@@ -29,9 +31,13 @@ const itemsOf = (groups) => groups.flatMap((g) => g.items);
 /**
  * open, anchorRef, onClose   as Popover
  * label              accessible name of the panel
- * groups             [{ label, items: [{ id, label, icon }] }] — the first column, grouped
+ * groups             [{ label, items: [{ id, label, icon, note }] }] — the first column, grouped;
+ *                    a note is a small trailing word, e.g. 'fixed' on the one item a locked
+ *                    chooser offers
  * optionsOf(item)    -> [{ id, label, disabled, note }] — the second column for one item
  * onPick(item, option)
+ * value              { item, option } — the current pair: its item opens first and its option
+ *                    carries a check, so an editor of an existing choice shows where it stands
  * filter             'auto' (default) | true | false — a filter field over the first column
  * filterPlaceholder  default 'Filter'
  * emptyText          first column has no match; noOptionsText: the item offers nothing
@@ -46,7 +52,7 @@ export function CascadeMenu(props) {
     filter = 'auto', filterPlaceholder = 'Filter',
     emptyText = 'Nothing matches.', noOptionsText = 'Nothing to choose here.',
     optionsLabel = 'Options', backLabel = 'Back',
-    width = 520, stackBelow = 560, className,
+    width = 520, stackBelow = 560, className, value,
   } = props;
 
   const rootRef = useRef(null);
@@ -71,7 +77,7 @@ export function CascadeMenu(props) {
   // Fresh every time it opens: no stale filter, the first item highlighted, the first step shown.
   useEffect(() => {
     if (!open) return undefined;
-    setQ(''); setActiveId(null); setStage('items');
+    setQ(''); setActiveId(value?.item ?? null); setStage('items');
     const measure = () => setStacked(window.innerWidth < stackBelow);
     measure();
     window.addEventListener('resize', measure);
@@ -158,6 +164,7 @@ export function CascadeMenu(props) {
                         onClick={() => { setActiveId(it.id); enterOptions(); }}>
                         {it.icon ? <span className="uic-cascade-ic" aria-hidden="true">{it.icon}</span> : null}
                         <span className="uic-chip-t">{it.label}</span>
+                        {it.note ? <span className="uic-cascade-note">{it.note}</span> : null}
                         <span className="uic-cascade-chev" aria-hidden="true"><Chevron dir="right" size={14} /></span>
                       </button>
                     );
@@ -181,13 +188,18 @@ export function CascadeMenu(props) {
               <span className="uic-chip-t">{active ? active.label : ''}</span>
             </div>
             <div className="uic-pop-list">
-              {options.map((o) => (
-                <button key={o.id} type="button" className="uic-pop-item uic-cascade-opt"
+              {options.map((o) => {
+                const on = !!value && active?.id === value.item && o.id === value.option;
+                return (
+                <button key={o.id} type="button" className={'uic-pop-item uic-cascade-opt' + (on ? ' is-on' : '')}
+                  aria-current={on ? 'true' : undefined}
                   disabled={!!o.disabled} onClick={() => onPick?.(active, o)}>
+                  {value ? <span className="uic-pop-check" aria-hidden="true">{on ? <Tick /> : null}</span> : null}
                   <span className="uic-chip-t">{o.label}</span>
                   {o.note ? <span className="uic-cascade-note">{o.note}</span> : null}
                 </button>
-              ))}
+                );
+              })}
               {active && options.length === 0 ? <div className="uic-pop-note">{noOptionsText}</div> : null}
             </div>
           </div>

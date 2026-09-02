@@ -15,7 +15,11 @@ import { IcX } from './icons.jsx';
  * icon       leading glyph
  * title      native tooltip, usually the untruncated label
  * selected   this chip stands for something chosen (brand fill)
- * onClick    makes the chip itself a button; unselected + clickable renders as an open slot
+ * onClick    makes the chip itself a button
+ * slot       the dashed "open slot" look for a chip that stands for a choice not yet made
+ *            (+ add a file). Defaults to clickable-and-unselected, which is how every earlier
+ *            caller got it; pass slot={false} for a chip that is clickable AND already set,
+ *            e.g. a chosen route that opens its own editor.
  * onRemove   adds a trailing ✕ button; removeLabel is REQUIRED with it, because "✕" alone tells
  *            a screen reader nothing about which of five chips it removes
  * trailing   a node rendered between the label and the ✕ — a compact control the chip carries,
@@ -28,10 +32,11 @@ import { IcX } from './icons.jsx';
  */
 export const Chip = forwardRef(function Chip(props, ref) {
   const { label, icon, title, selected = false, onClick, onRemove, removeLabel, trailing, className,
-          ...rest } = props;
+          slot, ...rest } = props;
+  const isSlot = slot ?? (Boolean(onClick) && !selected);
   const cls = ['uic-chip',
     selected ? 'is-selected' : '',
-    onClick && !selected ? 'is-open' : '',
+    isSlot ? 'is-open' : '',
     className || ''].filter(Boolean).join(' ');
 
   const body = (
