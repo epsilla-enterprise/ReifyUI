@@ -53,7 +53,7 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Block state** | `withText`, `withReasoning`, `withStep`, `withResult`, `asstText`, `createConversationStore` — session-continuation state machine |
 | **Chat surface** | `ChatMessages`, `UserTurn`, `AssistantTurn`, `ToolGroup`, `ToolRow`, `Composer` — message list + a collapsible "ran 5 commands, wrote a file" tool-step timeline |
 | **Chat panel** | `ChatPanel` — the whole conversation column beside a document: history replay, the live turn, connecting-and-retry, attachments, dictation, composer. You supply `runTurn` and `loadHistory`; it owns everything else. `turnsToMessages`, `createDictation`, `bytesLabel` |
-| **Library page** | `Carousel`, `Card`, `Chip`, `SearchField`, `Popover`, `Modal`, `useTypewriter` — the surface a document product opens on: a prompt box, a strip of templates, the things you already made |
+| **Library page** | `Carousel`, `Card`, `Chip`, `SearchField`, `Popover`, `CascadeMenu`, `Modal`, `useTypewriter` — the surface a document product opens on: a prompt box, a strip of templates, the things you already made |
 | **Rich blocks** | `CodeBlock` (highlight.js + mermaid + charts), `useResizablePane`, `PaneResizer` |
 | **Task list** | `TaskList`, `taskStatusGroup` — the master list beside a conversation: live status, filtering, cursor pagination. Transport-agnostic: you supply `fetchPage(cursor)` |
 | **Dialogs** | `DialogHost`, `useDialog` — awaited in-app `alert` / `confirm` / `prompt`, so a destructive tool call or a "name this" step never falls back to a browser popup |
@@ -148,7 +148,7 @@ import 'reifyui/styles/chat.css';          // chat surface + tool steps + compos
 import 'reifyui/styles/themes/light.css';  // light theme variables
 import 'reifyui/styles/themes/dark.css';   // dark theme variables
 import 'reifyui/styles/library.css';       // shell, hero, prompt box, carousel, card, table
-import 'reifyui/styles/chip.css';          // Chip + Popover
+import 'reifyui/styles/chip.css';          // Chip + Popover + CascadeMenu
 import 'reifyui/styles/preview.css';       // Modal
 import 'reifyui/styles/slides.css';        // slides
 import 'reifyui/styles/sheet.css';         // spreadsheet grid

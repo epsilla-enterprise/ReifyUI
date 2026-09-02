@@ -63,6 +63,8 @@ export { SearchField } from './components/SearchField.jsx';
 // Anchored panel with placement built in — flips, clamps to the viewport, closes on Escape and
 // outside press. Ten hand-rolled versions of this existed; one survived a phone.
 export { Popover } from './components/Popover.jsx';
+// Two-level pick in one panel (items, then the highlighted item's options), on Popover.
+export { CascadeMenu } from './components/CascadeMenu.jsx';
 // A dialog whose body is yours (useDialog answers a question; this holds content). Shares the
 // dialog host's Escape ordering and overlay layer. Needs styles/preview.css.
 export { Modal } from './components/Modal.jsx';

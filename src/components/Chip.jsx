@@ -7,7 +7,7 @@
 //
 // Width is CSS, not a prop: two of the copies set maxWidth 180 and 220 inline on the same
 // component in the same app. The label ellipsizes against the row it is in.
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { IcX } from './icons.jsx';
 
 /**
@@ -22,9 +22,13 @@ import { IcX } from './icons.jsx';
  *            e.g. a per-route model <select> in a comparison bar. It is the CALLER's control:
  *            the chip never wraps it in its own press target, so a select inside a clickable
  *            chip still opens instead of triggering the chip.
+ * ref        lands on the OUTERMOST element, the box a Popover or CascadeMenu anchors against.
+ * ...rest    goes onto the press target (aria-expanded, aria-haspopup, data-*), so a chip that
+ *            opens a menu can say so to assistive tech without the library naming every attribute.
  */
-export function Chip(props) {
-  const { label, icon, title, selected = false, onClick, onRemove, removeLabel, trailing, className } = props;
+export const Chip = forwardRef(function Chip(props, ref) {
+  const { label, icon, title, selected = false, onClick, onRemove, removeLabel, trailing, className,
+          ...rest } = props;
   const cls = ['uic-chip',
     selected ? 'is-selected' : '',
     onClick && !selected ? 'is-open' : '',
@@ -43,8 +47,8 @@ export function Chip(props) {
 
   if (onClick && onRemove) {
     return (
-      <span className={cls} title={title}>
-        <button type="button" className="uic-chip-press" onClick={onClick}>{body}</button>
+      <span ref={ref} className={cls} title={title}>
+        <button type="button" className="uic-chip-press" onClick={onClick} {...rest}>{body}</button>
         {trail}
         <button type="button" className="uic-chip-x" aria-label={removeLabel} onClick={onRemove}>
           <IcX size={12} />
@@ -57,16 +61,16 @@ export function Chip(props) {
     // browser un-nests unpredictably — so a clickable chip that carries one keeps the split form.
     if (trailing) {
       return (
-        <span className={cls} title={title}>
-          <button type="button" className="uic-chip-press" onClick={onClick}>{body}</button>
+        <span ref={ref} className={cls} title={title}>
+          <button type="button" className="uic-chip-press" onClick={onClick} {...rest}>{body}</button>
           {trail}
         </span>
       );
     }
-    return <button type="button" className={cls} title={title} onClick={onClick}>{body}</button>;
+    return <button ref={ref} type="button" className={cls} title={title} onClick={onClick} {...rest}>{body}</button>;
   }
   return (
-    <span className={cls} title={title}>
+    <span ref={ref} className={cls} title={title} {...rest}>
       {body}
       {trail}
       {onRemove ? (
@@ -76,4 +80,4 @@ export function Chip(props) {
       ) : null}
     </span>
   );
-}
+});
