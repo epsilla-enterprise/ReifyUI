@@ -20,17 +20,22 @@ import React from 'react';
 import { ToolGroup } from './ToolSteps.jsx';
 
 export const DEFAULT_STATUS_LABELS = {
-  failed: '✕ Failed — see the output above for the reason',
+  failed: '✕ Failed. See the output above for the reason',
   cancelled: '◼ Stopped by you',
   // Claims only what is true of every cause: an incomplete turn may have hit its step or time
   // budget, or been cut mid-flight (a replica restart under a live turn settles as incomplete).
   // Asserting "step or time limit" for all of them sent an operator debugging a limit that was
   // never reached. A host that knows the actual cause says so in its own chrome (statusLabels /
   // assistantFooter).
-  incomplete: '◔ Stopped before finishing — Continue to resume',
+  incomplete: '◔ Stopped before finishing. Continue to resume',
 };
 
 const defaultMarkdown = (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
+
+// Reduced motion: the typewriter is motion — render streamed text directly.
+const REDUCED_MOTION = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Typewriter reveal for the actively-streaming text block. Deltas arrive in ~1.2s bursts, so raw
 // rendering makes short answers pop in whole. This fills characters at a deliberate pace: reveal
@@ -45,7 +50,8 @@ const defaultMarkdown = (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}
 const REVEAL_SEC = 3;   // a pending burst fills over ~3s...
 const MIN_CPS = 10;     // ...unless the tail is small, then at least this many chars/sec
 function TypewriterText(props) {
-  const { text, active, render } = props;
+  const { text, render } = props;
+  const active = props.active && !REDUCED_MOTION;
   const [n, setN] = React.useState(() => (text ? text.length : 0));
   const textRef = React.useRef(text);
   textRef.current = text;
