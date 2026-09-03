@@ -4,7 +4,7 @@
 // authored by hand rather than inferred. Components accept the props documented in
 // the README; where a prop set is open-ended (render slots, passthrough) the type is
 // intentionally permissive rather than falsely precise.
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType, ForwardRefExoticComponent, ReactNode, RefAttributes } from 'react';
 
 // ── streaming ──────────────────────────────────────────────────────────────
 export interface SSEEvent { type: string; [k: string]: unknown; }
@@ -183,8 +183,14 @@ export interface ComposerProps {
   /** The accessible name. Give one whenever the placeholder animates — it is otherwise the only
    *  name the field has, and it changes every few seconds. */
   inputAriaLabel?: string;
+  /** Single-line layout: accessories, textarea and send share ONE row (the classic chat
+   *  input); buttons stick to the bottom edge as the textarea grows. */
+  inline?: boolean;
   /** Node rendered ABOVE the textarea, e.g. a row of staged attachments. */
   attachments?: ReactNode;
+  /** Node rendered INSIDE the card, under the action row — one seamless surface, for the row
+   *  that belongs to the message being composed (route chips, a template picker). */
+  tray?: ReactNode;
   accessoriesLeft?: ReactNode;
   accessoriesRight?: ReactNode;
   /** Replaces the default send button entirely. */
@@ -348,9 +354,18 @@ export interface ChipProps {
   onRemove?: () => void;
   /** Required with onRemove: "✕" alone does not say which of five chips it removes. */
   removeLabel?: string;
+  /** The dashed "open slot" look for a choice not yet made. Defaults to clickable-and-unselected;
+   *  pass slot={false} for a chip that is clickable AND already set. */
+  slot?: boolean;
+  /** A compact control the chip carries between the label and the ✕ (the caller's control —
+   *  never wrapped in the chip's own press target). */
+  trailing?: ReactNode;
   className?: string;
+  /** Everything else lands on the press target (aria-expanded, aria-haspopup, data-*). */
+  [k: string]: unknown;
 }
-export const Chip: ComponentType<ChipProps>;
+/** ref lands on the OUTERMOST element — the box a Popover or CascadeMenu anchors against. */
+export const Chip: ForwardRefExoticComponent<ChipProps & RefAttributes<HTMLElement>>;
 
 export interface SearchFieldProps {
   value: string;
