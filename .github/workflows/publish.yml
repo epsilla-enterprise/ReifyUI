@@ -1,0 +1,24 @@
+# Publish to npm with trusted publishing (OIDC): no npm token, no one-time code. The npm package's
+# settings name this repo + workflow as its trusted publisher; every run proves its identity to
+# npm and publishes with provenance. Trigger: push a version tag (v0.12.0) or run it by hand.
+name: publish
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --provenance --access public

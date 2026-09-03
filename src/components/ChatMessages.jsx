@@ -12,6 +12,7 @@
 //                               (HR renders its attachment cards here)
 //   workingExtra(m, i)          extra content on the live Working row (HR's Stop button)
 //   assistantFooter(m, i)       content below a finished assistant turn (file cards, action row)
+//   roleLabel(m, i)             small caption above a turn ("You", the agent's name); none by default
 //   renderStep(step, j)         per-step override inside the activity timeline
 //   statusLabels                terminal badge copy per status
 //   workingLabel / toolLabels   live-indicator + timeline copy
@@ -75,13 +76,18 @@ function TypewriterText(props) {
 // NOTE: components take a single `props` object and destructure inside — TypeScript consumers
 // (HR is TSX) infer inline-destructured JS props as REQUIRED, which would force every slot.
 export function UserTurn(props) {
-  const { msg, children } = props;
+  const { msg, children, label } = props;
+  const bubble = (
+    <div className="wbx-bubble-user">
+      {children}
+      {msg.text && <div className="wbx-bubble-text">{msg.text}</div>}
+    </div>
+  );
+  // With a caption, caption and bubble share one column so the caption's left edge is the
+  // bubble's left edge (the design), while the column itself still sits at the trailing side.
   return (
     <div className="wbx-turn user">
-      <div className="wbx-bubble-user">
-        {children}
-        {msg.text && <div className="wbx-bubble-text">{msg.text}</div>}
-      </div>
+      {label ? <div className="wbx-turn-body"><div className="wbx-role">{label}</div>{bubble}</div> : bubble}
     </div>
   );
 }
@@ -96,9 +102,11 @@ export function AssistantTurn(props) {
     renderStep,
     toolLabels,
     footer,
+    label,
   } = props;
   return (
     <div className="wbx-turn asst">
+      {label ? <div className="wbx-role">{label}</div> : null}
       {msg.blocks.map((b, bi) => (b.kind === 'tools'
         ? <ToolGroup key={bi} reasoning={b.reasoning} steps={b.steps}
             running={msg.status === 'running' && bi === msg.blocks.length - 1}
@@ -173,6 +181,7 @@ export function ChatMessages(props) {
     renderStep,
     workingLabel,
     toolLabels,
+    roleLabel,
   } = props;
   return (
     <>
@@ -182,7 +191,7 @@ export function ChatMessages(props) {
           if (el !== undefined) return <React.Fragment key={i}>{el}</React.Fragment>;
         }
         return m.role === 'user' ? (
-          <UserTurn key={i} msg={m}>{userExtras?.(m, i)}</UserTurn>
+          <UserTurn key={i} msg={m} label={roleLabel?.(m, i)}>{userExtras?.(m, i)}</UserTurn>
         ) : (
           <AssistantTurn key={i} msg={m}
             renderMarkdown={renderMarkdown}
@@ -191,6 +200,7 @@ export function ChatMessages(props) {
             statusLabels={statusLabels}
             renderStep={renderStep}
             toolLabels={toolLabels}
+            label={roleLabel?.(m, i)}
             footer={assistantFooter?.(m, i)} />
         );
       })}

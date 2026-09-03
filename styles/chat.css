@@ -32,6 +32,12 @@
 /* A turn fills the column; user right-aligned, assistant stacks timeline above prose. */
 .wbx-turn { display: flex; min-width: 0; padding: 0 var(--uic-turn-pad-x, 28px); }
 .wbx-turn.user { justify-content: flex-end; }
+/* The optional caption above a turn: who said it. In the user turn it shares a column with the
+   bubble (`.wbx-turn-body`) so both start at the same left edge; in the assistant turn it is simply
+   the first line. Never a percentage flex-basis here: in a column that is 100% of the HEIGHT. */
+.wbx-role { flex: none; width: 100%; font-family: var(--uic-mono, ui-monospace, monospace); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--uic-cap, #a8a29e); margin-bottom: 7px; }
+.wbx-turn-body { display: flex; flex-direction: column; min-width: 0; max-width: var(--uic-bubble-max-w, 80%); }
+.wbx-turn-body > .wbx-bubble-user { max-width: none; }
 /* assistant turn stacks vertically: activity timeline ABOVE the answer (never side by side) */
 .wbx-turn.asst { flex-direction: column; gap: 10px; align-items: stretch; }
 .wbx-bubble-user { max-width: var(--uic-bubble-max-w, 80%); background: var(--uic-brand-faint, #EFF3FF);
