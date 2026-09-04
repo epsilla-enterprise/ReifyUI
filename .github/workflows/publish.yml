@@ -18,6 +18,12 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      # What npm sees: the identity claims of the OIDC token (never the token itself). When npm
+      # answers "OIDC permission denied", compare these with the trusted publisher entry.
+      - name: Show the identity npm will check
+        run: |
+          T=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | python3 -c 'import sys,json; print(json.load(sys.stdin)["value"])')
+          echo "$T" | cut -d. -f2 | python3 -c 'import sys,json,base64; p=sys.stdin.read().strip(); p+="="*(-len(p)%4); c=json.loads(base64.urlsafe_b64decode(p)); print({k: c.get(k) for k in ("repository","repository_owner","workflow","workflow_ref","job_workflow_ref","environment","ref","event_name","aud")})'
       - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run build
