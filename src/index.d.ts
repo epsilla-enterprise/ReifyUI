@@ -167,6 +167,9 @@ export const AssistantTurn: ComponentType<Record<string, unknown>>;
 export const DEFAULT_STATUS_LABELS: Record<string, string>;
 
 export interface ComposerProps {
+  /** files dropped on the composer, or on dropTargetRef's element */
+  onFiles?: (files: FileList) => void;
+  dropTargetRef?: { current: HTMLElement | null };
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;

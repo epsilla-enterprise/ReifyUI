@@ -14,13 +14,17 @@
 //                      surface, no divider band. This is where a product puts the row that
 //                      belongs to the message being composed (Arena's harness+model chips,
 //                      a template picker, a recipient list) rather than to the app chrome.
+//   onFiles(FileList)  files dropped on the composer (or on dropTargetRef's element, when a
+//                      product wants the whole conversation to take a drop). The composer is
+//                      the one that lights up (.is-dropping) either way. Absent: no drop.
+//   dropTargetRef      a ref to a wider drop target than the composer itself
 //   classNames         { root, input, row } — each REPLACES the default class when provided,
 //                      so a product can restyle wholesale without fighting the package CSS
 //
 // NOTE: autoGrow and a CSS-driven min-height on the textarea are mutually exclusive — autoGrow
 // writes an explicit height on every keystroke, which the min-height then cannot raise. A fixed
 // multi-line box wants autoGrow={false} + rows.
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IcSend } from './icons.jsx';
 
 // Takes a single `props` object (destructured inside) so TSX consumers don't infer every slot
@@ -44,6 +48,8 @@ export function Composer(props) {
     inputAriaLabel,
     attachments,
     tray,
+    onFiles,
+    dropTargetRef,
     accessoriesLeft,
     accessoriesRight,
     renderSend,
@@ -52,6 +58,34 @@ export function Composer(props) {
   } = props;
   const ownRef = useRef(null);
   const taRef = inputRef || ownRef;
+  const rootRef = useRef(null);
+
+  // Drag-and-drop attach. Native listeners on the target (the composer, or the wider element a
+  // product names), so any element can take the drop; a depth counter, because children fire
+  // their own enter/leave pairs and the highlight would flicker off while crossing them.
+  const [dropping, setDropping] = useState(false);
+  useEffect(() => {
+    if (!onFiles || disabled) return undefined;
+    const el = (dropTargetRef && dropTargetRef.current) || rootRef.current;
+    if (!el) return undefined;
+    let depth = 0;
+    const hasFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes('Files');
+    const enter = (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth += 1; setDropping(true); };
+    const over = (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
+    const leave = (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth = Math.max(0, depth - 1); if (depth === 0) setDropping(false); };
+    const drop = (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); depth = 0; setDropping(false);
+      if (e.dataTransfer.files && e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+    };
+    el.addEventListener('dragenter', enter); el.addEventListener('dragover', over);
+    el.addEventListener('dragleave', leave); el.addEventListener('drop', drop);
+    return () => {
+      el.removeEventListener('dragenter', enter); el.removeEventListener('dragover', over);
+      el.removeEventListener('dragleave', leave); el.removeEventListener('drop', drop);
+    };
+  }, [onFiles, disabled, dropTargetRef]);
+  const rootClass = (classNames.root ?? 'wbx-composer') + (dropping ? ' is-dropping' : '');
 
   // Auto-grow the composer to fit its content, capped at ~maxRows rows (then it scrolls).
   useEffect(() => {
@@ -73,7 +107,7 @@ export function Composer(props) {
 
   if (inline) {
     return (
-      <div className={classNames.root ?? 'wbx-composer'}>
+      <div ref={rootRef} className={rootClass}>
         {attachments}
         <div className="uic-composer-line">
           {accessoriesLeft}
@@ -100,7 +134,7 @@ export function Composer(props) {
   }
 
   return (
-    <div className={classNames.root ?? 'wbx-composer'}>
+    <div ref={rootRef} className={rootClass}>
       {attachments}
       <textarea
         ref={taRef}

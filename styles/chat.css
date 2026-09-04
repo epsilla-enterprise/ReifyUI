@@ -181,6 +181,8 @@
   /* auto-grows in JS up to ~15 rows, then scrolls */
   max-height: calc(var(--uic-font-md, 14px) * 1.5 * 15); }
 .wbx-composer-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+/* files held over the composer (or over the wider target a product names): the composer says so */
+.wbx-composer.is-dropping { outline: 2px solid var(--uic-brand, #285AFF); outline-offset: -2px; }
 /* ── pane resizer (useResizablePane + PaneResizer) ── */
 .uic-vresize { flex: 0 0 7px; align-self: stretch; cursor: col-resize; background: transparent; touch-action: none; }
 /* Stacked split (useResizablePane axis 'y'): the bar is horizontal, the drag is vertical. */
