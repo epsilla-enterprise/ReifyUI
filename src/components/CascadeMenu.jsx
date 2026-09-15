@@ -34,7 +34,10 @@ const itemsOf = (groups) => groups.flatMap((g) => g.items);
  * groups             [{ label, items: [{ id, label, icon, note }] }] — the first column, grouped;
  *                    a note is a small trailing word, e.g. 'fixed' on the one item a locked
  *                    chooser offers
- * optionsOf(item)    -> [{ id, label, disabled, note }] — the second column for one item
+ * optionsOf(item)    -> [{ id, label, disabled, note, badge }] — the second column for one item;
+ *                    a badge is a node at the row's end, e.g. which key serves a model, and
+ *                    is what gives way (its own ellipsis) when the row is narrow
+ * optionsFooter      a node under the options, e.g. what the options without a badge mean
  * onPick(item, option)
  * value              { item, option } — the current pair: its item opens first and its option
  *                    carries a check, so an editor of an existing choice shows where it stands
@@ -51,7 +54,7 @@ export function CascadeMenu(props) {
     groups = [], optionsOf, onPick,
     filter = 'auto', filterPlaceholder = 'Filter',
     emptyText = 'Nothing matches.', noOptionsText = 'Nothing to choose here.',
-    optionsLabel = 'Options', backLabel = 'Back',
+    optionsLabel = 'Options', backLabel = 'Back', optionsFooter,
     width = 520, stackBelow = 560, className, value,
   } = props;
 
@@ -191,17 +194,20 @@ export function CascadeMenu(props) {
               {options.map((o) => {
                 const on = !!value && active?.id === value.item && o.id === value.option;
                 return (
-                <button key={o.id} type="button" className={'uic-pop-item uic-cascade-opt' + (on ? ' is-on' : '')}
+                <button key={o.id} type="button"
+                  className={'uic-pop-item uic-cascade-opt' + (on ? ' is-on' : '') + (o.badge ? ' has-badge' : '')}
                   aria-current={on ? 'true' : undefined}
                   disabled={!!o.disabled} onClick={() => onPick?.(active, o)}>
                   {value ? <span className="uic-pop-check" aria-hidden="true">{on ? <Tick /> : null}</span> : null}
                   <span className="uic-chip-t">{o.label}</span>
                   {o.note ? <span className="uic-cascade-note">{o.note}</span> : null}
+                  {o.badge || null}
                 </button>
                 );
               })}
               {active && options.length === 0 ? <div className="uic-pop-note">{noOptionsText}</div> : null}
             </div>
+            {optionsFooter || null}
           </div>
         )}
       </div>

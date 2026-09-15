@@ -1,6 +1,6 @@
 {
   "name": "reifyui",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI \u2014 model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
   "keywords": [
     "react",
@@ -51,6 +51,26 @@
       "import": "./dist/chart.js",
       "require": "./dist/chart.cjs"
     },
+    "./collab": {
+      "types": "./dist/collab.d.ts",
+      "import": "./dist/collab.js",
+      "require": "./dist/collab.cjs"
+    },
+    "./sheet": {
+      "types": "./dist/sheet.d.ts",
+      "import": "./dist/sheet.js",
+      "require": "./dist/sheet.cjs"
+    },
+    "./sheet-doc": {
+      "types": "./dist/sheet-doc.d.ts",
+      "import": "./dist/sheet-doc.js",
+      "require": "./dist/sheet-doc.cjs"
+    },
+    "./graph": {
+      "types": "./dist/graph.d.ts",
+      "import": "./dist/graph.js",
+      "require": "./dist/graph.cjs"
+    },
     "./styles/*": "./styles/*",
     "./package.json": "./package.json"
   },
@@ -76,7 +96,10 @@
     "mermaid": "^10 || ^11",
     "react": ">=18",
     "react-dom": ">=18",
-    "react-file-icon": "^1"
+    "react-file-icon": "^1",
+    "yjs": "^13.6",
+    "@hocuspocus/provider": "^2.13",
+    "lucide-react": ">=0.400"
   },
   "peerDependenciesMeta": {
     "highlight.js": {
@@ -89,6 +112,15 @@
       "optional": true
     },
     "react-file-icon": {
+      "optional": true
+    },
+    "yjs": {
+      "optional": true
+    },
+    "@hocuspocus/provider": {
+      "optional": true
+    },
+    "lucide-react": {
       "optional": true
     }
   },

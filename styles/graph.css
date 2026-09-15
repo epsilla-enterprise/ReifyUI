@@ -1,0 +1,395 @@
+/* Graph panes shared by every host (the ContextualGraph app and the studio's
+   Spaces): the Connect tab, the Logs tab, their dialogs and skeletons, the
+   keep-alive tab panes and the Graph / Connect / Logs switcher. Colors come
+   from the host's design tokens (--ink, --mute, --line, --brand, ...). */
+
+/* Tokens the panes need that a host may not define: each resolves to the host's
+   own value when it has one and to the graph app's value otherwise. */
+.cn-root, .lg-root, .cgdlg-backdrop, .wb-tabs, .pane {
+  --pn-scrim: var(--scrim, rgba(17,24,39,.42));
+  --pn-t-fast: var(--t-fast, 120ms ease);
+  --pn-code-bg: var(--code-bg, #1F2433);
+  --pn-code-ink: var(--code-ink, #E7EAF3);
+  --pn-focus-ring: var(--focus-ring, 0 0 0 3px rgba(66,48,156,.12));
+  --pn-warn-line: var(--warn-line, #F3DFB4);
+  --pn-warn-ink: var(--warn-ink, #92400E);
+  --pn-danger-line: var(--danger-line, #FECACA);
+  --pn-danger-bg: var(--danger-bg, #FEF2F2);
+  --pn-danger-ink: var(--danger-ink, #B91C1C);
+  --pn-cold-ink: var(--cold-ink, #475569);
+  --pn-info-ink: var(--info-ink, #075985);
+  --pn-ok-ink: var(--ok-ink, #047857);
+  --pn-hover-line: var(--hover-line, #CBD0DA);
+}
+
+/* Skeleton loaders — subtle opacity pulse on a neutral block. Shaped by the
+   call site (or the composed helpers) so real content lands with no shift. */
+.sk {
+  display: inline-block; background: var(--line); border-radius: 6px;
+  animation: sk-pulse 1.5s ease-in-out infinite;
+}
+.sk-line { height: 12px; width: 100%; }
+.sk-card { width: 100%; height: 100%; border-radius: var(--r-card); }
+.sk-thumbnail { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 0; }
+.sk-avatar { width: 32px; height: 32px; border-radius: 999px; }
+.sk-table-row { width: 100%; height: 20px; }
+@keyframes sk-pulse { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+/* ── Dialogs: the package's Modal is the frame (reifyui/styles/preview.css); these are the
+   panes' own bodies inside it. ──────────────────────────────────────────────── */
+.cn-dlg .cn-dlg-body { font-size: 13px; color: var(--mute); line-height: 1.55; margin-bottom: 16px; }
+.cn-dlg .cn-dlg-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+
+/* Keep-alive tab panes: all visited panes stay MOUNTED (Logs search and
+   pagination, canvas pan/zoom survive tab switches); only the active one
+   is displayed. */
+.gp-tabpane { display: flex; min-width: 0; min-height: 0; }
+.gp-tabpane > * { flex: 1; min-width: 0; }
+.gp-tabpane.gp-tab-hidden { display: none; }
+.gp-placeholder { display: flex; padding: 12px; }
+
+/* Segmented switcher — lifted from HarnessRouter's workbench toggle
+   (.wb-tabs/.wb-tab in harnessrouter/src/app/hr.css), restyled via tokens. */
+.wb-tabs {
+  display: flex; gap: 4px; background: var(--brand-50); border: 1px solid var(--line);
+  border-radius: 10px; padding: 4px; width: fit-content;
+}
+.wb-tab {
+  font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 7px;
+  /* --ink-2, not --mute: on the tinted pill bg, --mute is 4.42:1 and 13px/600
+     is not WCAG large text, so the inactive primary-nav label needs the
+     darker tier to clear 4.5:1 (9.4:1 here). */
+  cursor: pointer; color: var(--ink-2); border: none; background: transparent;
+  font-family: inherit;
+}
+.wb-tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
+
+/* Generic panel + empty state (Connect / Logs placeholders, chat empty) */
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.pane-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--mute); font-size: 13px; text-align: center; padding: 32px;
+}
+.pane-empty .big { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.pane-empty svg { color: var(--mute-2); }
+
+/* Page loading / error strip */
+.page-note { padding: 40px; text-align: center; color: var(--mute); font-size: 13.5px; flex: 1; }
+
+
+/* ── Logs tab — the graph's activity trail. Design language lifted from the
+   HarnessRouter Traces list (row grid, kind badges, mono stats column,
+   expandable detail, skeleton rows), restyled with the CG tokens. ── */
+.lg-root .pane { min-height: 0; container-type: inline-size; }
+.lg-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.lg-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.lg-search {
+  display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+  color: var(--mute); width: min(320px, 100%); margin-left: auto;
+}
+.lg-search:focus-within { border-color: var(--brand); box-shadow: var(--pn-focus-ring); background: #fff; }
+.lg-search input { border: 0; background: transparent; outline: none; width: 100%; font-size: 13px; color: var(--ink); font-family: inherit; }
+.lg-search input::placeholder { color: var(--mute-2); }
+.lg-search-x { border: 0; background: transparent; color: var(--mute); cursor: pointer; display: inline-flex; padding: 2px; border-radius: 5px; }
+.lg-search-x:hover { background: var(--line-soft); color: var(--ink-2); }
+
+.lg-list { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px 10px; }
+.lg-row-wrap { border-radius: 9px; }
+.lg-row-wrap.open { background: var(--surface-2); }
+.lg-row {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  padding: 7px 10px; border: 0; background: transparent; cursor: pointer;
+  border-radius: 9px; font-family: inherit;
+}
+.lg-row:hover { background: var(--surface-2); }
+.lg-caret { color: var(--mute-2); display: inline-flex; flex-shrink: 0; }
+.lg-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+.lg-ok { background: var(--ok); }
+.lg-error { background: var(--hot); }
+.lg-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+.lg-k-add { color: var(--pn-ok-ink); background: var(--ok-soft); }
+.lg-k-del { color: var(--pn-danger-ink); background: var(--hot-soft); }
+.lg-k-edit { color: var(--pn-info-ink); background: var(--info-soft); }
+.lg-k-read { color: var(--pn-cold-ink); background: var(--cold-soft); }
+.lg-k-chat { color: var(--brand-ink); background: var(--brand-soft); }
+.lg-k-err { color: var(--pn-danger-ink); background: var(--hot-soft); }
+.lg-sum { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.lg-actor { display: inline-flex; align-items: center; gap: 6px; max-width: 130px; }
+.lg-actor-av {
+  width: 18px; height: 18px; border-radius: 999px; background: var(--brand); color: #fff;
+  font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lg-actor-mark {
+  width: 18px; height: 18px; border-radius: 999px; background: var(--brand-50);
+  border: 1px solid var(--line-soft); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lg-actor-name { font-size: 12px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-dur { font-size: 11.5px; color: var(--mute); min-width: 44px; text-align: right; }
+.lg-ago { font-size: 11.5px; color: var(--mute); min-width: 58px; text-align: right; }
+
+.lg-detail { padding: 2px 12px 12px 40px; }
+.lg-detail-meta { font-size: 11px; color: var(--mute); margin-bottom: 8px; }
+/* Shared error-box recipe — .err-box for new call sites; the two legacy class
+   names (Logs detail + Connect) stay valid via co-located selectors. */
+.err-box, .lg-detail-err, .cn-err {
+  font-size: 12.5px; color: var(--pn-danger-ink); background: var(--pn-danger-bg);
+  border: 1px solid var(--pn-danger-line); border-radius: 8px;
+  white-space: pre-wrap; word-break: break-word;
+}
+.lg-detail-err { padding: 8px 10px; margin-bottom: 8px; }
+.lg-detail-none { font-size: 12.5px; color: var(--mute); }
+.lg-detail .lg-json { margin: 0; max-height: 320px; overflow: auto; }
+
+.lg-more { display: flex; justify-content: center; padding: 10px 0 6px; }
+
+.lg-skel-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+.lg-skel-right { margin-left: auto; }
+
+@container (max-width: 700px) {
+  .lg-dur { display: none; }
+  .lg-actor-name { display: none; }
+  .lg-actor { max-width: none; }
+}
+@container (max-width: 480px) {
+  .lg-badge { display: none; }
+  .lg-ago { min-width: 0; }
+  .lg-detail { padding-left: 12px; }
+  .lg-head { flex-wrap: wrap; }
+  .lg-search { margin-left: 0; width: 100%; }
+}
+
+/* Logs: external agent calls — the "Agent call" op family and the API-key
+   actor chip (distinct from people and the copilot). */
+.lg-k-ext { color: var(--pn-warn-ink); background: var(--warm-soft); }
+.lg-actor-key {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 150px;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--warm-soft); color: var(--pn-warn-ink); border: 1px solid var(--pn-warn-line);
+}
+.lg-actor-key svg { flex-shrink: 0; }
+.lg-actor-key .lg-actor-name { color: inherit; font-weight: 600; }
+
+/* ── Connect tab — the connection card (MCP config + keys, progressive
+   disclosure) over a tools master/detail split. Same pane recipe as Logs:
+   the pane is a size container; the split's single-pane switch is JS-driven
+   (ResizeObserver on the pane, ~720px) because the STRUCTURE changes, while
+   fine-grained wraps stay container queries. ── */
+.cn-root .pane { min-height: 0; container-type: inline-size; }
+.cn-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.cn-skel { padding: 16px; }
+.cn-skel-split { display: grid; grid-template-columns: 280px 1fr; gap: 16px; margin-top: 14px; }
+/* Flex column so bar spacing comes from the bars' own margins (no spacer divs). */
+.cn-skel-col { display: flex; flex-direction: column; }
+
+.cn-hint { font-size: 12px; color: var(--mute); }
+.cn-warn { font-size: 12px; color: var(--pn-warn-ink); margin-top: 6px; line-height: 1.5; }
+/* .cn-err shares the .err-box recipe (see Logs section); deltas only. */
+.cn-err { padding: 7px 10px; margin-top: 8px; line-height: 1.45; }
+.cn-err-top { margin: 0 16px 8px; }
+
+/* Keyboard operability inside the Connect pane: the shared .switch hides its
+   input (display:none), which removes it from the tab order. Restore a
+   focusable, invisible input with a visible ring, and grow the hit target to
+   28px with padding that does not move the layout. */
+.cn-root .switch input {
+  display: block; position: absolute; inset: -5px; width: auto; height: auto;
+  margin: 0; opacity: 0; cursor: pointer;
+}
+.cn-root .switch input:focus-visible + .slider { outline: 2px solid var(--brand); outline-offset: 3px; }
+.cn-root .switch input:disabled { cursor: not-allowed; }
+
+/* ── Connection card ───────────────────────────────────────────────────── */
+.cn-conn { flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid var(--line-soft); }
+.cn-conn-bar { display: flex; align-items: center; gap: 8px; }
+.cn-conn-toggle {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  min-height: 30px; padding: 4px 6px; border: none; background: none; cursor: pointer;
+  border-radius: 8px; font-family: inherit; text-align: left; color: var(--mute);
+}
+.cn-conn-toggle:hover { background: var(--surface-2); }
+.cn-conn-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.cn-conn-chev { display: inline-flex; color: var(--mute-2); transition: transform var(--pn-t-fast); transform: rotate(-90deg); }
+.cn-conn-chev.open { transform: rotate(0deg); }
+.cn-conn-url {
+  flex: 0 1 auto; min-width: 0; font-size: 12.5px; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cn-conn-count { flex-shrink: 0; font-size: 12px; color: var(--mute); }
+.cn-conn-body { padding: 10px 6px 2px; }
+.cn-code { margin: 0; }
+.cn-caption { margin: 8px 0 0; font-size: 12px; color: var(--mute); line-height: 1.5; }
+
+.cn-callout {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding: 8px 12px; border-radius: 9px;
+  background: var(--warm-soft); border: 1px solid var(--pn-warn-line);
+  color: var(--pn-warn-ink); font-size: 12.5px;
+}
+.cn-callout > svg { flex-shrink: 0; }
+.cn-callout > span { flex: 1; min-width: 200px; }
+
+/* API keys (inside the card) */
+.cn-keys-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.cn-keys-h h4 { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.cn-keys { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.cn-key-row { display: flex; align-items: center; gap: 14px; padding: 7px 10px; border-radius: 9px; }
+.cn-key-row:hover { background: var(--surface-2); }
+.cn-key-name {
+  display: inline-flex; align-items: center; gap: 7px; flex: 1; min-width: 120px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cn-key-name svg { color: var(--mute); flex-shrink: 0; }
+.cn-key-prefix {
+  font-size: 12px; color: var(--ink-2); background: var(--line-soft);
+  padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
+}
+.cn-key-meta { font-size: 12px; color: var(--mute); white-space: nowrap; flex-shrink: 0; }
+.cn-key-lbl { color: var(--mute); margin-right: 3px; }
+.cn-key-revoke { flex-shrink: 0; }
+
+/* Secret shown once at mint */
+.cn-secret { padding: 12px 14px; background: var(--pn-code-bg); border-radius: 10px; }
+.cn-secret code { font-size: 12.5px; color: var(--pn-code-ink); word-break: break-all; line-height: 1.5; }
+
+/* ── Tools master/detail split ─────────────────────────────────────────── */
+.cn-split { flex: 1; min-height: 420px; display: flex; }
+.cn-list {
+  flex: 0 0 280px; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; border-right: 1px solid var(--line-soft);
+}
+.cn-list-h { flex-shrink: 0; padding: 10px 10px 6px; }
+.cn-new-tool { width: 100%; height: 28px; }
+.cn-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 8px 10px; }
+.cn-lrow {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 32px; padding: 4px 8px; border-radius: 8px; cursor: pointer;
+}
+.cn-lrow:hover { background: var(--surface-2); }
+.cn-lrow:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.cn-lrow.sel { background: var(--brand-soft); }
+.cn-lrow.sel .cn-lrow-name { color: var(--brand-ink); }
+.cn-lrow-name {
+  flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cn-lrow.off .cn-lrow-name { color: var(--mute); }
+.cn-lrow.sel.off .cn-lrow-name { color: var(--brand-ink); opacity: .7; }
+.cn-lrow .pill { flex-shrink: 0; height: 18px; font-size: 10.5px; padding: 0 6px; }
+.cn-lrow-toggle { display: inline-flex; flex-shrink: 0; }
+.cn-lrow-draft .cn-lrow-name { font-style: italic; font-weight: 500; }
+.cn-list-empty { font-size: 12px; color: var(--mute); line-height: 1.55; padding: 8px 8px 0; }
+
+/* Detail pane (its own size container: the params grid + try-it grid fold
+   against the DETAIL's width, which shrinks before the pane does). */
+.cn-detail {
+  flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  container-type: inline-size;
+}
+.cn-dhead {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line-soft); min-height: 46px;
+}
+.cn-dback { flex-shrink: 0; }
+.cn-dname {
+  flex: 0 1 auto; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cn-dhead .switch { margin-left: auto; }
+.cn-dscroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 18px; }
+.cn-ddesc { margin: 0 0 16px; font-size: 12.5px; color: var(--ink-2); line-height: 1.55; max-width: 560px; }
+.cn-dsec { margin-bottom: 20px; }
+.cn-dsec:last-of-type { margin-bottom: 0; }
+.cn-dsec-h { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.cn-dsec-sub { margin: 0 0 12px; line-height: 1.5; max-width: 560px; }
+.cn-dfoot { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.cn-del {
+  border: none; background: none; padding: 5px 2px; min-height: 28px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--mute);
+}
+.cn-del:hover { color: var(--pn-danger-ink); text-decoration: underline; }
+.cn-del:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+/* Narrow (JS-measured on the pane): single-pane, list <-> detail. */
+.cn-split.narrow .cn-detail { display: none; }
+.cn-split.narrow .cn-list { flex: 1; border-right: none; }
+.cn-split.narrow.show-detail .cn-list { display: none; }
+.cn-split.narrow.show-detail .cn-detail { display: flex; }
+
+/* Definition form (carried over from the old editor dialog) */
+.cn-ed .field { margin-bottom: 14px; }
+.cn-ed { max-width: 720px; }
+.cn-ed-params-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cn-ed-params-h label { margin-bottom: 0; }
+.cn-ed-params { display: flex; flex-direction: column; gap: 6px; }
+.cn-ed-prow {
+  display: grid; gap: 6px; align-items: center;
+  grid-template-columns: minmax(88px, 1fr) 92px minmax(110px, 1.4fr) auto minmax(64px, .8fr) 28px;
+}
+.cn-ed-phead {
+  font-size: 10.5px; font-weight: 600; color: var(--mute);
+  text-transform: uppercase; letter-spacing: .04em; padding: 0 2px;
+}
+.cn-ed-req { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); white-space: nowrap; cursor: pointer; }
+.cn-ed-req input { margin: 0; accent-color: var(--brand); }
+.cn-type-sel { width: 100%; }
+.cn-type-sel .select { width: 100%; padding: 6px 30px 6px 8px; font-size: 12px; }
+.cn-ed-query { min-height: 96px; resize: vertical; font-size: 12.5px; line-height: 1.55; }
+.cn-ed-save { display: flex; justify-content: flex-end; }
+
+/* Try it (carried over from the old test-runner dialog) */
+.cn-try { max-width: 720px; }
+.cn-test-params { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 14px; }
+.cn-test-field { margin-bottom: 10px; }
+.cn-test-field label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; }
+.cn-try-run { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.cn-try-note { font-style: italic; }
+.cn-test-result { margin-top: 12px; border-top: 1px solid var(--line-soft); padding-top: 10px; max-width: 720px; }
+.cn-test-units { font-size: 12px; color: var(--mute); margin-bottom: 8px; }
+.cn-test-json { margin: 0; max-height: 300px; overflow: auto; }
+
+/* Detail-width ladder: params rows fold to a 2-up card grid when the DETAIL
+   pane is narrow (also covers the wide split next to an expanded chat). */
+@container (max-width: 640px) {
+  .cn-ed-phead { display: none; }
+  .cn-ed-prow-wrap { border: 1px solid var(--line-soft); border-radius: 9px; padding: 8px; }
+  .cn-ed-prow { grid-template-columns: 1fr 1fr; }
+}
+
+/* Pane-width ladders (container-measured on the pane, like Logs) */
+@container (max-width: 700px) {
+  .cn-key-row { flex-wrap: wrap; row-gap: 4px; }
+  .cn-key-name { flex-basis: 100%; }
+  .cn-key-revoke { margin-left: auto; }
+}
+@container (max-width: 480px) {
+  .cn-conn-count { display: none; }
+  .cn-dhead { padding: 10px 12px; }
+  .cn-dscroll { padding: 12px; }
+}
+
+/* Controls the panes use that only the graph app defines globally; scoped to
+   the panes so a host's own controls are untouched. */
+.cn-root .iconbtn, .dlg .iconbtn {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--mute); cursor: pointer;
+}
+.cn-root .iconbtn:hover { background: var(--line-soft); color: var(--ink); }
+.cn-root .iconbtn.danger:hover { background: var(--hot-soft); color: var(--pn-danger-ink); }
+.cn-root .field, .dlg .field { margin-bottom: 14px; }
+.cn-root .field label, .dlg .field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.cn-root .select-wrap { position: relative; display: inline-block; }
+.cn-root .select-wrap .select {
+  appearance: none; -webkit-appearance: none; width: 100%; padding: 8px 34px 8px 10px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+  font-size: 13px; font-family: inherit;
+}
+.cn-root .select-wrap .select:focus { outline: none; border-color: var(--brand); box-shadow: var(--pn-focus-ring); }
+.cn-root .select-wrap .chev { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--mute); display: flex; }
+.cn-root .btn.danger, .cn-dlg .btn.danger { background: #fff; border-color: var(--pn-danger-line); color: var(--pn-danger-ink); }
+.cn-root .btn.danger:hover, .cn-dlg .btn.danger:hover { background: var(--hot-soft); }
+.cn-root .pill.brand { background: var(--brand-soft); color: var(--brand-ink); }

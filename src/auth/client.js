@@ -12,7 +12,10 @@
 /* eslint-env browser */
 
 const _cfg = {
-  engine: '',            // REQUIRED: your auth backend base URL, set via configureAuth
+  // Same-origin. A product that forgets to configure gets the working default rather than the
+  // engine's Azure FQDN, which no browser may call — its ingress admits only the VM that fronts
+  // these apps, so a direct call 403s and reads as "Failed to fetch".
+  engine: '/engine',
   product: '',
   loginHash: '#/login',
 };
@@ -20,7 +23,6 @@ const _cfg = {
 export function configureAuth(cfg) {
   Object.assign(_cfg, cfg);
   if (!_cfg.product) throw new Error('configureAuth: product is required');
-  if (!_cfg.engine) throw new Error('configureAuth: engine (auth backend base URL) is required');
 }
 
 export function authConfig() { return { ..._cfg }; }

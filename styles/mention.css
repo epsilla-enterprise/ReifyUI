@@ -1,0 +1,79 @@
+/* MentionInput (UI Core): the field, the pill, the menu at the caret. Tokens are the --uic-*
+   layer with the library's light values as fallbacks, so a host without a token layer still
+   gets a finished look. A pill's tint is its own --uic-mention-color (set per item), the brand
+   otherwise. */
+.uic-mention-field { position: relative; min-width: 0; }
+.uic-mention-editor {
+  min-height: 1.6em; max-height: 40vh; overflow-y: auto;
+  white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
+  font: inherit; color: var(--uic-ink, #111317); line-height: 1.55;
+}
+.uic-mention-editor.is-empty::before {
+  content: attr(data-placeholder); color: var(--uic-mute, #5B5D66); opacity: .75; pointer-events: none;
+  position: absolute; left: 0; top: 0;
+}
+.uic-mention-field.is-disabled .uic-mention-editor { opacity: .6; cursor: not-allowed; }
+
+/* the pill: one unit in the text, as tall as a line, never wrapping inside */
+.uic-mention {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: baseline;
+  margin: 0 1px; padding: 0 7px 0 3px; border-radius: 999px;
+  background: color-mix(in srgb, var(--uic-mention-color, var(--uic-brand, #285AFF)) 12%, transparent);
+  color: color-mix(in srgb, var(--uic-mention-color, var(--uic-brand, #285AFF)) 78%, var(--uic-ink, #111317));
+  font-weight: 600; font-size: .94em; line-height: 1.5; white-space: nowrap;
+  user-select: all; -webkit-user-select: all; cursor: default;
+}
+.uic-mention-editor .uic-mention:hover { background: color-mix(in srgb, var(--uic-mention-color, var(--uic-brand, #285AFF)) 20%, transparent); }
+.uic-mention .uic-mention-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; font-size: 11px; line-height: 1; flex-shrink: 0;
+}
+.uic-mention .uic-mention-ic.is-mono {
+  background: var(--uic-mention-color, var(--uic-brand, #285AFF)); color: #fff; font-size: 8.5px; font-weight: 700; letter-spacing: .02em;
+}
+.uic-mention .uic-mention-ic img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+
+/* the menu. The popover's box is styled here too, so a host that loads only this sheet (the
+   studio does not load the chat surface's stylesheet) still gets a floating panel; without
+   position: fixed it would land at the foot of the page and scroll the document to itself. */
+.uic-pop.uic-mention-pop {
+  position: fixed; z-index: var(--uic-z-overlay, 9000); box-sizing: border-box; padding: 0; overflow: hidden;
+  background: var(--uic-surface, #fff); border: 1px solid var(--uic-line, #DDDFE6); border-radius: 12px;
+  box-shadow: var(--uic-shadow-1, 0 12px 32px rgba(17, 19, 23, .14));
+}
+.uic-mention-menu { max-height: inherit; overflow-y: auto; padding: 6px; }
+.uic-mention-head { padding: 6px 10px 4px; font-size: 11px; color: var(--uic-mute, #5B5D66); }
+.uic-mention-sec {
+  padding: 8px 10px 3px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--uic-mute, #5B5D66);
+}
+.uic-mention-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0;
+  padding: 7px 10px; border: 0; border-radius: 9px; background: none; text-align: left; font: inherit; cursor: pointer;
+  color: var(--uic-ink, #111317);
+}
+.uic-mention-item.is-active { background: var(--uic-brand-faint, #EFF3FF); }
+.uic-mention-item.is-disabled { cursor: default; opacity: .55; }
+.uic-mention-item .uic-mention-ic {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 8px; font-size: 15px;
+  background: color-mix(in srgb, var(--uic-mention-color, var(--uic-brand, #285AFF)) 12%, transparent);
+  color: var(--uic-mention-color, var(--uic-brand, #285AFF));
+}
+.uic-mention-item .uic-mention-ic img { width: 26px; height: 26px; border-radius: 8px; object-fit: cover; }
+.uic-mention-item .uic-mention-ic .is-mono { font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.uic-mention-text { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+.uic-mention-item .uic-mention-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uic-mention-desc { font-size: 12px; color: var(--uic-mute, #5B5D66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uic-mention-tag {
+  flex-shrink: 0; font-size: 11px; color: var(--uic-mute, #5B5D66);
+  padding: 2px 7px; border-radius: 999px; background: var(--uic-line, #EFF1F4);
+}
+.uic-mention-empty { padding: 12px 10px; font-size: 12.5px; color: var(--uic-mute, #5B5D66); }
+
+/* pills in read-only text (a message, a preview) */
+.uic-mention-text-view { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .uic-mention-desc { display: none; }
+}

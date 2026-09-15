@@ -1,74 +1,47 @@
-// SheetGrid — the reusable AI-spreadsheet grid.
+// SheetGrid — the reusable AI-spreadsheet grid (UI Core).
 //
-// CLAMP_LINE / CLAMP_PAD are the line height and the vertical padding a cell is laid out with;
-// they turn a measured row height into a number of lines for `--shg-clamp`, which host CSS uses
-// for line-clamp.
+// Product-agnostic: it renders a sheet JSON and calls back for edits/runs.
+// The Sheets product (frontend-sheets) AND agentstudio studio Spaces both
+// mount it via @ui-core, so a Space can nest a sheet-typed element with the
+// same component. All I/O is injected — this file has no product API.
 //
-// Product-agnostic: it renders a sheet JSON and calls back for edits/runs. All I/O is injected —
-// this file has no product API.
-//
-// Sheet shape:
-//   { meta{title}, columns[{id,name,type,options?,width?}],
-//     rows[{id,height?}], cells{ "<rowId>:<colId>": {value,…} } }
+// Sheet shape (see backend/sheets sheet_model):
+//   { meta{title,rev}, columns[{id,name,type,options?,compute?}],
+//     rows[{id}], cells{ "<rowId>:<colId>": {value,status,error} } }
 //
 // Props:
 //   sheet       — the sheet JSON (required)
-//   onChange(next)          — persist an edited sheet (add/edit/delete col/row/cell)
 //   onRunCell(rowId, colId) — run one computed cell (optional)
+//   ops                     — the document ops (useSheetCollab's sheetOps); every
+//                             edit is one op on this tab, never a whole-sheet replace
 //   onRunColumn(colId)      — batch-run a computed column (optional)
+//   peers       — this tab's other people: [{id, name, color, sel, typing}] (from
+//                 useSheetCollab); their selection is outlined and tinted in
+//                 their color, their in-progress text shows in the cell as they type
+//   onPresence  — ({sel, typing}) what THIS person selects and types, for peers
 //   readOnly    — no editing/running (template previews / embedded read views)
-//   fetchBlobUrl(path)      — async product-authed fetch -> object URL, for inline images
-//                             whose url is a product path
+//   fetchBlobUrl(path)      — async product-authed fetch -> object URL, for
+//                             inline images whose url is a product path
 //   onOpenResource(ref)     — open a referenced artifact (sheet/slides/…)
-//   columnTypes             — the column vocabulary (see SheetColumnType below). Defaults to
-//                             this file's own set, so existing hosts need not pass it.
-//   renderCell(ctx)         — replace a cell's body. Return undefined to fall through.
-//   renderColumnConfig(ctx) — replace the column popover's body. Return undefined to fall through.
 //
-// Editing is optimistic: local edits call onChange with the next sheet; the host persists and
-// hands truth back through `sheet`.
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-
-const CLAMP_LINE = 18;
-const CLAMP_PAD = 10;
-// A cell says which of its children is the clamped text by marking it. Without a mark the cell IS
-// its text (the built-in value cell), which is the right default.
-const CLAMP_TEXT_SEL = '[data-shg-clamp-text]';
+// Editing goes straight to the document: local edits are ops on it; the
+// host persists + (via realtime) rebroadcasts truth back through `sheet`.
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MentionInput } from '../mention/MentionInput.jsx';
 import { createPortal } from 'react-dom';
+import { withAlpha } from '../collab/colors.js';
 
 const cellKey = (rowId, colId) => `${rowId}:${colId}`;
 const uid = (p) => `${p}_${Math.random().toString(36).slice(2, 10)}`;
 
-// A column type is a descriptor, not a hardcoded literal. This grid used to test
-// `col.type === 'compute'` in twelve places, which meant a host could not add a column kind
-// without forking the file — and a fork is how two copies of one component start.
-//
-//   type       the value stored in column.type
-//   label      what the type menu and the header sub-label show
-//   computed   the app fills these cells, not the person: status dot, tint, run affordances
-//   editable   defaults to !computed
-//   configKey  the column's config object for this type; dropped when the type changes
-//   badge(col) an extra header sub-label, e.g. which kind of compute this is
-//   configWidth / configHeight  how much room this type's config popover needs. A type whose
-//              config is a prompt editor does not fit in the width a Type select needs.
-const DEFAULT_COLUMN_TYPES = [
-  { type: 'text', label: 'Text' },
-  { type: 'number', label: 'Number' },
-  { type: 'select', label: 'Select' },
-  { type: 'tags', label: 'Tags' },
-  { type: 'checkbox', label: 'Checkbox' },
-  { type: 'date', label: 'Date' },
-  { type: 'url', label: 'Link' },
-  { type: 'resource', label: 'Resource' },
-  {
-    type: 'compute',
-    label: 'Computed',
-    computed: true,
-    configKey: 'compute',
-    badge: (col) => col.compute?.kind,
-  },
-];
+const TYPE_LABEL = {
+  text: 'Text', number: 'Number', select: 'Select', tags: 'Tags',
+  checkbox: 'Checkbox', date: 'Date', url: 'Link', resource: 'Resource', compute: 'Computed',
+};
+// A one-glyph mark per column type, for pills and pickers.
+const TYPE_GLYPH = { text: 'Aa', number: '#', select: '▾', tags: '#', checkbox: '✓', date: '▦', url: '↗', resource: '◫', compute: '✦' };
 
+const MANUAL_TYPES = ['text', 'number', 'select', 'tags', 'checkbox', 'date', 'url', 'resource'];
 const COMPUTE_KINDS = [
   { kind: 'prompt', label: 'AI prompt' },
   { kind: 'harness', label: 'Agent (harness)' },
@@ -78,34 +51,24 @@ const COMPUTE_KINDS = [
 const RESOURCE_KINDS = ['image', 'sheet', 'slides', 'workflow', 'graph'];
 const RESOURCE_ICON = { image: '🖼', sheet: '▦', slides: '▤', workflow: '⚙', graph: '◉' };
 
-// Popovers render through a body portal with FIXED positioning — inside the grid they'd be
-// clipped by the scroll container and out-stacked by the sticky header/row-number cells. anchor
-// is a DOMRect captured at open time; the box clamps to the viewport and flips above the anchor
-// when the bottom would overflow. Any scroll closes it (the anchor moved).
+// Popovers render through a body portal with FIXED positioning — inside the
+// grid they'd be clipped by the scroll container and out-stacked by the
+// sticky header/row-number cells. anchor is a DOMRect captured at open time;
+// the box clamps to the viewport and flips above the anchor when the bottom
+// would overflow. A scroll OUTSIDE the box closes it (the anchor moved);
+// scrolling inside it (a long prompt, a long option list) is the box's own.
 function PopPortal({ anchor, width = 250, estHeight = 300, className, children, onClose }) {
   const boxRef = useRef(null);
   useEffect(() => {
     if (!onClose) return undefined;
-    const close = () => onClose();
-    // mousedown, not click: React 18 flushes a listener attached in this effect synchronously
-    // during the very discrete event that opened the popover, so a `click` listener closes the
-    // box before it paints. A press inside the anchor is also ignored — that is the trigger's
-    // own toggle, and closing here would race it into staying open.
-    const onDown = (e) => {
-      if (boxRef.current && boxRef.current.contains(e.target)) return;
-      if (anchor && e.clientX >= anchor.left && e.clientX <= anchor.right
-          && e.clientY >= anchor.top && e.clientY <= anchor.bottom) return;
+    const close = (e) => {
+      if (e?.type === 'scroll' && boxRef.current && e.target instanceof Node && boxRef.current.contains(e.target)) return;
       onClose();
     };
-    window.addEventListener('mousedown', onDown);
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [onClose, anchor]);
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close); };
+  }, [onClose]);
   if (!anchor) return null;
   const left = Math.max(8, Math.min(anchor.right - width, window.innerWidth - width - 8));
   let top = anchor.bottom + 6;
@@ -118,19 +81,37 @@ function PopPortal({ anchor, width = 250, estHeight = 300, className, children, 
   );
 }
 
-// A muted rotation for select/tag pills when an option declares no color.
+// Value styling. A column's `options` are its value vocabulary: each option is
+// a value and a color. A select column offers them as choices; EVERY column
+// type paints a cell whose value matches one as a pill in that color, so an
+// enumerated result (CORRECT / WRONG, HEALTHY / AT RISK) reads at a glance.
+// The palette is named so a color can mean something; an option that declares
+// no color takes the muted rotation.
+export const PILL_PALETTE = [
+  { name: 'green', color: '#D1FAE5' }, { name: 'red', color: '#FEE2E2' },
+  { name: 'amber', color: '#FEF3C7' }, { name: 'blue', color: '#DBEAFE' },
+  { name: 'purple', color: '#EDE9FE' }, { name: 'pink', color: '#FCE7F3' },
+  { name: 'teal', color: '#CCFBF1' }, { name: 'gray', color: '#E5E7EB' },
+];
 const PILL_FALLBACKS = ['#E0E7FF', '#FCE7F3', '#D1FAE5', '#FEF3C7', '#E0F2FE', '#F3E8FF', '#FFE4E6'];
 
-function normOptions(options) {
+export function normOptions(options) {
   return (options || []).map((o, i) => {
     if (typeof o === 'string') return { label: o, color: PILL_FALLBACKS[i % PILL_FALLBACKS.length] };
     return { label: o.label ?? String(o.value ?? ''), color: o.color || PILL_FALLBACKS[i % PILL_FALLBACKS.length] };
   });
 }
 
+const sameValue = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+
+/** The option a value matches (trimmed, case-insensitive), or null. */
+function optionFor(value, options) {
+  if (value === undefined || value === null || value === '') return null;
+  return normOptions(options).find((o) => sameValue(o.label, value)) || null;
+}
+
 function pillColor(label, options) {
-  const opts = normOptions(options);
-  const hit = opts.find((o) => o.label === label);
+  const hit = optionFor(label, options);
   if (hit) return hit.color;
   // stable fallback by hash so ad-hoc tags keep their color
   let h = 0;
@@ -163,21 +144,24 @@ function ResourceChip({ refVal, onOpen }) {
   );
 }
 
-// A small status dot for computed cells.
+// A small status dot for computed cells while work is pending or went wrong;
+// a finished cell is its value.
 function StatusDot({ status }) {
-  if (!status || status === 'empty') return null;
+  if (!status || status === 'empty' || status === 'done') return null;
   return <span className={`shg-dot shg-dot-${status}`} title={status} />;
 }
 
 function CellValue({ cell, col, fetchBlobUrl, onOpenResource }) {
   const v = cell?.value;
   if (v === undefined || v === null || v === '') return <span className="shg-val-txt" />;
-  // A typed artifact ref renders the same whether hand-set (resource column) or produced by a
-  // compute kind (e.g. Generate image).
+  // A typed artifact ref renders the same whether hand-set (resource column)
+  // or produced by a compute kind (e.g. Generate image).
   if (v && typeof v === 'object' && !Array.isArray(v) && v.kind) {
     if (v.kind === 'image') return <RefImage refVal={v} fetchBlobUrl={fetchBlobUrl} />;
     return <ResourceChip refVal={v} onOpen={onOpenResource} />;
   }
+  const styled = col.type !== 'tags' && optionFor(v, col.options);
+  if (styled) return <span className="shg-pill" style={{ background: styled.color }}>{styled.label}</span>;
   switch (col.type) {
     case 'select':
       return <span className="shg-pill" style={{ background: pillColor(String(v), col.options) }}>{String(v)}</span>;
@@ -204,13 +188,12 @@ function CellValue({ cell, col, fetchBlobUrl, onOpenResource }) {
   }
 }
 
-export function SheetGrid({
-  sheet, onChange, onRunCell, onRunColumn, readOnly = false, fetchBlobUrl, onOpenResource,
-  peerMarks, onActiveCell, columnTypes = DEFAULT_COLUMN_TYPES, renderCell, renderColumnConfig,
-}) {
+export function SheetGrid({ sheet, ops, onRunCell, onRunColumn, readOnly = false, fetchBlobUrl, onOpenResource, peers, onPresence }) {
   const columns = sheet?.columns || [];
   const rows = sheet?.rows || [];
   const cells = sheet?.cells || {};
+  const tabId = sheet?.id;
+  const canEdit = !readOnly && !!ops && !!tabId;
   const [editing, setEditing] = useState(null);   // {rowId, colId, type}
   const [draft, setDraft] = useState('');
   const [menuCol, setMenuCol] = useState(null);   // {id, rect} of the open column menu
@@ -219,16 +202,60 @@ export function SheetGrid({
   const [dropAt, setDropAt] = useState(null);     // {kind, id, after} current drop slot
   const inputRef = useRef(null);
   const dragRef = useRef(null);
-  const gridRef = useRef(null);
-
-  // An unknown type still renders — as plain text, editable. Refusing to draw a column because
-  // its type is unfamiliar would hide the person's data from them.
-  const descOf = (type) => columnTypes.find((t) => t.type === type) || { type, label: type };
-  const isComputed = (col) => !!descOf(col?.type).computed;
-  const isEditable = (col) => {
-    const d = descOf(col?.type);
-    return d.editable ?? !d.computed;
-  };
+  // Selection, Google Sheets style: a click selects, a drag or Shift extends
+  // the range, a double click / Enter / typing edits the focus cell. Indexes
+  // into this tab's rows and columns; presence carries the ids.
+  const [sel, setSel] = useState(null);           // {a:{r,c}, f:{r,c}}
+  const dragSel = useRef(false);
+  const rootRef = useRef(null);
+  const presenceRef = useRef(onPresence);
+  presenceRef.current = onPresence;
+  const range = sel ? { r0: Math.min(sel.a.r, sel.f.r), r1: Math.max(sel.a.r, sel.f.r),
+                        c0: Math.min(sel.a.c, sel.f.c), c1: Math.max(sel.a.c, sel.f.c) } : null;
+  const inSel = (ri, ci) => !!range && ri >= range.r0 && ri <= range.r1 && ci >= range.c0 && ci <= range.c1;
+  const isFocus = (ri, ci) => !!sel && sel.f.r === ri && sel.f.c === ci;
+  const clampSel = (p) => ({ r: Math.max(0, Math.min(p.r, rows.length - 1)), c: Math.max(0, Math.min(p.c, columns.length - 1)) });
+  const moveFocus = (dr, dc, extend) => setSel((cur) => {
+    if (!cur || !rows.length || !columns.length) return cur;
+    const f = clampSel({ r: cur.f.r + dr, c: cur.f.c + dc });
+    return { a: extend ? cur.a : f, f };
+  });
+  useEffect(() => {
+    const up = () => { dragSel.current = false; };
+    window.addEventListener('mouseup', up);
+    return () => window.removeEventListener('mouseup', up);
+  }, []);
+  // Tell peers what this person selects and types.
+  useEffect(() => {
+    const fn = presenceRef.current;
+    if (!fn) return;
+    const ids = (p) => [rows[p.r]?.id, columns[p.c]?.id];
+    fn({
+      sel: sel && rows[sel.f.r] && columns[sel.f.c] ? { a: ids(sel.a), f: ids(sel.f) } : null,
+      typing: editing && typeof draft === 'string' ? { key: cellKey(editing.rowId, editing.colId), text: draft } : null,
+    });
+  }, [sel, editing, draft, rows, columns]);
+  // Peers on this tab: who has which cell in focus, which cells sit in their
+  // ranges, and what they are typing where.
+  const peerLayer = useMemo(() => {
+    const focus = {}, tint = {}, typing = {};
+    const rIdx = new Map(rows.map((r, i) => [r.id, i]));
+    const cIdx = new Map(columns.map((c, i) => [c.id, i]));
+    for (const p of peers || []) {
+      if (p.typing && p.typing.key) typing[p.typing.key] = { text: p.typing.text, color: p.color, name: p.name };
+      if (!p.sel || !p.sel.a || !p.sel.f) continue;
+      const a = { r: rIdx.get(p.sel.a[0]), c: cIdx.get(p.sel.a[1]) }, f = { r: rIdx.get(p.sel.f[0]), c: cIdx.get(p.sel.f[1]) };
+      if ([a.r, a.c, f.r, f.c].some((v) => v === undefined)) continue;
+      focus[cellKey(p.sel.f[0], p.sel.f[1])] = p;
+      for (let r = Math.min(a.r, f.r); r <= Math.max(a.r, f.r); r++) {
+        for (let c = Math.min(a.c, f.c); c <= Math.max(a.c, f.c); c++) {
+          const k = cellKey(rows[r].id, columns[c].id);
+          if (!tint[k]) tint[k] = p.color;
+        }
+      }
+    }
+    return { focus, tint, typing };
+  }, [peers, rows, columns]);
 
   // Drag-to-resize: live via sizeDraft, persisted into the sheet on release.
   const startResize = (e, kind, id, start) => {
@@ -250,10 +277,9 @@ export function SheetGrid({
       document.body.style.cursor = '';
       if (!d) return;
       setSizeDraft({});
-      mutate((n) => {
-        if (d.kind === 'col') { const c = n.columns.find((x) => x.id === d.id); if (c) c.width = Math.round(d.last); }
-        else { const r = n.rows.find((x) => x.id === d.id); if (r) r.height = Math.round(d.last); }
-      });
+      if (!canEdit) return;
+      if (d.kind === 'col') { const c = columns.find((x) => x.id === d.id); if (c) ops.setColumn(tabId, { ...c, width: Math.round(d.last) }); }
+      else { const r = rows.find((x) => x.id === d.id); if (r) ops.setRow(tabId, { ...r, height: Math.round(d.last) }); }
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -262,16 +288,17 @@ export function SheetGrid({
   const colWidth = (col) => (sizeDraft.col && sizeDraft.col[col.id]) || col.width || undefined;
 
   // Drag-to-reorder (columns by their header, rows by their number cell).
-  const reorder = (kind, fromId, toId, after) => mutate((n) => {
-    const arr = kind === 'col' ? n.columns : n.rows;
-    const i = arr.findIndex((x) => x.id === fromId);
-    if (i < 0 || fromId === toId) return;
-    const [item] = arr.splice(i, 1);
-    let j = arr.findIndex((x) => x.id === toId);
-    if (j < 0) { arr.splice(i, 0, item); return; }
+  const reorder = (kind, fromId, toId, after) => {
+    if (!canEdit || fromId === toId) return;
+    const arr = (kind === 'col' ? columns : rows).map((x) => x.id);
+    const i = arr.indexOf(fromId);
+    if (i < 0) return;
+    arr.splice(i, 1);
+    let j = arr.indexOf(toId);
+    if (j < 0) return;
     if (after) j += 1;
-    arr.splice(j, 0, item);
-  });
+    if (kind === 'col') ops.moveColumn(tabId, fromId, j); else ops.moveRow(tabId, fromId, j);
+  };
   const dndProps = (kind, id) => (readOnly ? {} : {
     draggable: true,
     onDragStart: (e) => {
@@ -307,112 +334,36 @@ export function SheetGrid({
     }
     return cls;
   };
-  // The number gutter is FIXED: sized by the digit count of the row total so it never stretches
-  // (an empty grid otherwise splits the table width). Wide enough for the number AND the delete
-  // button beside it, both at a size worth aiming at.
-  const numW = Math.max(48, 30 + String(rows.length || 1).length * 9);
+  // The number gutter is FIXED: sized by the digit count of the row total so
+  // it never stretches (an empty grid otherwise splits the table width).
+  const numW = Math.max(40, 24 + String(rows.length || 1).length * 9);
   const numStyle = { width: numW, minWidth: numW, maxWidth: numW };
   const rowHeight = (row) => (sizeDraft.row && sizeDraft.row[row.id]) || row.height || undefined;
 
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
 
-  // How many lines of text a row has room for.
-  //
-  // This used to be derived from the row's STORED height, falling back to 34px — one line — for
-  // any row that had never been sized. But a row is very often tall because of a NEIGHBOURING
-  // column: an agent cell with files under its answer, or simply a taller one. Every other cell
-  // in that row then showed a single ellipsised line with the rest of the row empty beneath it,
-  // which is what the space was there for.
-  //
-  // Measured with every clamp forced back to one line first. That is the whole trick: the basis
-  // has to be the height the row's OTHER content needs, never the height the clamp itself just
-  // produced. Deriving it from the rendered height directly feeds back — more lines makes the
-  // row taller, which allows more lines — and the rows grow without bound (92 → 137 → 182 → …).
-  useLayoutEffect(() => {
-    const rowsEl = gridRef.current?.querySelectorAll('tbody tr[data-row-id]');
-    if (!rowsEl || !rowsEl.length) return;
-    const trs = Array.from(rowsEl);
-
-    // 1. Put every clamp back to one line, so what we measure next is the height the row's other
-    //    content NEEDS rather than the height the last clamp happened to produce.
-    for (const tr of trs) {
-      tr.style.removeProperty('--shg-clamp');
-      for (const td of tr.children) td.style.setProperty('--shg-clamp', '1');
-    }
-
-    // 2. Measure, in one pass: the row, and per cell whatever sits ALONGSIDE its text (an agent
-    //    cell keeps its files under its answer). Measured on the text's own box, which sizes to
-    //    its content — the <td> is stretched to the row and would report the row height for every
-    //    cell, making them all look equally full.
-    const plan = trs.map((tr) => ({
-      base: tr.offsetHeight,
-      cells: Array.from(tr.children).map((td) => {
-        const txt = td.querySelector(CLAMP_TEXT_SEL);
-        const box = txt && txt.parentElement;
-        return { td, extra: box ? Math.max(0, box.scrollHeight - txt.offsetHeight) : 0 };
-      }),
-    }));
-
-    // 3. Give every cell in a row the same amount of room for text.
-    //
-    //    `floor` is the line count the row's own height already allows. `need` is how tall the row
-    //    must be for the cell carrying the most alongside its text — the one with files under it —
-    //    to still get that many lines. Every other cell then fills THAT height, which is the whole
-    //    point: a cell with nothing under its text was showing one ellipsised line beside a
-    //    neighbour whose files made the row four times taller.
-    //
-    //    extra + lines*LINE <= need by construction, so no cell outgrows the height this was
-    //    measured against, and `base` is always re-measured at one line — so a second pass
-    //    computes the same answer instead of ratcheting the rows upward.
-    for (const { base, cells } of plan) {
-      const floorLines = Math.max(1, Math.floor((base - CLAMP_PAD) / CLAMP_LINE));
-      const need = Math.max(...cells.map((c) => c.extra)) + floorLines * CLAMP_LINE + CLAMP_PAD;
-      for (const { td, extra } of cells) {
-        const lines = Math.max(floorLines, Math.floor((need - extra - CLAMP_PAD) / CLAMP_LINE));
-        td.style.setProperty('--shg-clamp', String(lines));
-      }
-    }
-  });
-
-  const mutate = (fn) => {
-    if (readOnly || !onChange) return;
-    const next = JSON.parse(JSON.stringify(sheet));
-    fn(next);
-    onChange(next);
+  const setCell = (rowId, colId, value) => {
+    if (!canEdit) return;
+    ops.setCell(tabId, cellKey(rowId, colId), { value, status: 'done', updated_at: Math.floor(Date.now() / 1000) });
   };
 
-  // A manual edit writes the value and nothing else. It used to stamp `status:'done'`, which
-  // made every hand-typed cell claim to be the output of a run that never happened — and forced
-  // status rendering to be gated on the column type rather than on the cell. On a computed
-  // column the surrounding run record is kept, because there an override sits on top of a real
-  // run and the link to that run is still true.
-  const setCell = (rowId, colId, value) => mutate((n) => {
-    n.cells = n.cells || {};
-    const k = cellKey(rowId, colId);
-    const col = (n.columns || []).find((c) => c.id === colId);
-    const prev = n.cells[k];
-    n.cells[k] = isComputed(col) && prev ? { ...prev, value } : { value };
-  });
-
-  const openEdit = (rowId, col, anchorEl) => {
-    if (readOnly) return;
-    if (!isEditable(col)) return;
-    if (col.type === 'checkbox') {        // click toggles directly
+  const openEdit = (rowId, col, anchorEl, initial) => {
+    if (!canEdit) return;
+    if (col.type === 'compute') return;   // computed cells aren't hand-edited
+    if (col.type === 'checkbox') {        // toggles directly
       const cur = cells[cellKey(rowId, col.id)];
       setCell(rowId, col.id, !(cur && cur.value));
       return;
     }
     const c = cells[cellKey(rowId, col.id)];
     const v = c?.value;
-    if (col.type === 'tags') setDraft(Array.isArray(v) ? v.join(', ') : (v || ''));
+    if (col.type === 'tags') setDraft(initial ?? (Array.isArray(v) ? v.join(', ') : (v || '')));
     else if (col.type === 'resource') setDraft(v && typeof v === 'object' ? v : { kind: 'sheet', name: '', id: '', url: '' });
-    else setDraft(v == null ? '' : String(v));
+    else setDraft(initial ?? (v == null ? '' : String(v)));
     setEditing({ rowId, colId: col.id, type: col.type, rect: anchorEl?.getBoundingClientRect?.() || null });
-    onActiveCell && onActiveCell(cellKey(rowId, col.id));
   };
 
   const commitEdit = () => {
-    onActiveCell && onActiveCell(null);
     if (!editing) return;
     const { rowId, colId, type } = editing;
     let value = draft;
@@ -422,30 +373,104 @@ export function SheetGrid({
     setEditing(null);
   };
 
-  const addColumn = () => mutate((n) => {
-    n.columns.push({ id: uid('col'), name: `Column ${n.columns.length + 1}`, type: 'text' });
-  });
-  const addRow = () => mutate((n) => { n.rows.push({ id: uid('row') }); });
-  const deleteColumn = (colId) => mutate((n) => {
-    n.columns = n.columns.filter((c) => c.id !== colId);
-    for (const k of Object.keys(n.cells || {})) if (k.endsWith(`:${colId}`)) delete n.cells[k];
-  });
-  const deleteRow = (rowId) => mutate((n) => {
-    n.rows = n.rows.filter((r) => r.id !== rowId);
-    for (const k of Object.keys(n.cells || {})) if (k.startsWith(`${rowId}:`)) delete n.cells[k];
-  });
-  const renameColumn = (colId, name) => mutate((n) => {
-    const c = n.columns.find((x) => x.id === colId); if (c) c.name = name;
-  });
-  const configureColumn = (colId, patch) => mutate((n) => {
-    const c = n.columns.find((x) => x.id === colId); if (!c) return;
-    Object.assign(c, patch);
-    // A column carries the config of its own type and no other. Changing the type takes the old
-    // config with it, so a harness column that becomes a text column stops carrying a prompt.
-    if (patch.type) {
-      for (const d of columnTypes) if (d.configKey && d.type !== patch.type) delete c[d.configKey];
+  const addColumn = () => canEdit && ops.setColumn(tabId, { id: uid('col'), name: `Column ${columns.length + 1}`, type: 'text' });
+  const addRow = () => canEdit && ops.setRow(tabId, { id: uid('row') });
+  const deleteColumn = (colId) => canEdit && ops.deleteColumn(tabId, colId);
+  const deleteRow = (rowId) => canEdit && ops.deleteRow(tabId, rowId);
+  const renameColumn = (colId, name) => {
+    const c = columns.find((x) => x.id === colId);
+    if (canEdit && c) ops.setColumn(tabId, { ...c, name });
+  };
+  const configureColumn = (colId, patch) => {
+    const c = columns.find((x) => x.id === colId);
+    if (!canEdit || !c) return;
+    const next = { ...c, ...patch };
+    if (patch.type && patch.type !== 'compute') delete next.compute;
+    ops.setColumn(tabId, next);
+  };
+
+  // The selection as text: one line per row, tab between cells.
+  const cellText = (c) => {
+    const v = c?.value;
+    if (v === undefined || v === null) return '';
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'object') return v.name || v.url || v.id || '';
+    return String(v);
+  };
+  const copySelection = (e) => {
+    if (!range || editing) return;
+    const lines = [];
+    for (let r = range.r0; r <= range.r1; r++) {
+      const parts = [];
+      for (let c = range.c0; c <= range.c1; c++) parts.push(cellText(cells[cellKey(rows[r].id, columns[c].id)]));
+      lines.push(parts.join('\t'));
     }
-  });
+    e.clipboardData.setData('text/plain', lines.join('\n'));
+    e.preventDefault();
+  };
+  const pasteAt = (e) => {
+    if (!sel || editing || !canEdit) return;
+    const text = e.clipboardData.getData('text/plain');
+    if (!text) return;
+    e.preventDefault();
+    const now = Math.floor(Date.now() / 1000);
+    const patch = {};
+    const lines = text.replace(/\r/g, '').split('\n');
+    if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+    lines.forEach((line, dr) => line.split('\t').forEach((raw, dc) => {
+      const row = rows[sel.f.r + dr], col = columns[sel.f.c + dc];
+      if (!row || !col || col.type === 'compute') return;
+      let value = raw;
+      if (col.type === 'number') value = raw === '' ? null : Number(raw);
+      else if (col.type === 'checkbox') value = /^(true|yes|1|✓)$/i.test(raw.trim());
+      else if (col.type === 'tags') value = raw ? raw.split(',').map((x) => x.trim()).filter(Boolean) : [];
+      patch[cellKey(row.id, col.id)] = value === null || value === '' ? null : { value, status: 'done', updated_at: now };
+    }));
+    if (Object.keys(patch).length) ops.setCells(tabId, patch);
+    setSel({ a: sel.f, f: clampSel({ r: sel.f.r + lines.length - 1, c: sel.f.c + Math.max(...lines.map((l) => l.split('\t').length)) - 1 }) });
+  };
+  const clearSelection = () => {
+    if (!range || !canEdit) return;
+    const patch = {};
+    for (let r = range.r0; r <= range.r1; r++) {
+      for (let c = range.c0; c <= range.c1; c++) {
+        if (columns[c].type === 'compute') continue;
+        const k = cellKey(rows[r].id, columns[c].id);
+        if (cells[k]) patch[k] = null;
+      }
+    }
+    if (Object.keys(patch).length) ops.setCells(tabId, patch);
+  };
+  const onKeyDown = (e) => {
+    if (editing || menuCol) return;
+    if (!sel) return;
+    const meta = e.metaKey || e.ctrlKey;
+    if (meta && (e.key === 'c' || e.key === 'v' || e.key === 'x')) return;   // copy/paste events handle these
+    const focusCell = () => ({ row: rows[sel.f.r], col: columns[sel.f.c] });
+    switch (e.key) {
+      case 'ArrowUp': e.preventDefault(); moveFocus(-1, 0, e.shiftKey); return;
+      case 'ArrowDown': e.preventDefault(); moveFocus(1, 0, e.shiftKey); return;
+      case 'ArrowLeft': e.preventDefault(); moveFocus(0, -1, e.shiftKey); return;
+      case 'ArrowRight': e.preventDefault(); moveFocus(0, 1, e.shiftKey); return;
+      case 'Tab': e.preventDefault(); moveFocus(0, e.shiftKey ? -1 : 1, false); return;
+      case 'Escape': setSel(null); return;
+      case 'Enter': case 'F2': {
+        e.preventDefault();
+        const { row, col } = focusCell();
+        if (row && col) openEdit(row.id, col, rootRef.current?.querySelector(`[data-cell="${cellKey(row.id, col.id)}"]`));
+        return;
+      }
+      case 'Delete': case 'Backspace': e.preventDefault(); clearSelection(); return;
+      default:
+    }
+    if (!meta && !e.altKey && e.key.length === 1) {
+      const { row, col } = focusCell();
+      if (row && col && col.type !== 'compute' && col.type !== 'checkbox') {
+        e.preventDefault();
+        openEdit(row.id, col, rootRef.current?.querySelector(`[data-cell="${cellKey(row.id, col.id)}"]`), e.key);
+      }
+    }
+  };
 
   // The inline editor for the editing cell, by type.
   const renderEditor = (col) => {
@@ -495,12 +520,16 @@ export function SheetGrid({
              placeholder={col.type === 'tags' ? 'tag, tag, …' : ''}
              onChange={(e) => setDraft(e.target.value)}
              onBlur={commitEdit}
-             onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null); }} />
+             onKeyDown={(e) => {
+               if (e.key === 'Enter') { e.preventDefault(); commitEdit(); moveFocus(1, 0, false); rootRef.current?.focus(); }
+               else if (e.key === 'Tab') { e.preventDefault(); commitEdit(); moveFocus(0, e.shiftKey ? -1 : 1, false); rootRef.current?.focus(); }
+               else if (e.key === 'Escape') { setEditing(null); rootRef.current?.focus(); }
+             }} />
     );
   };
 
   return (
-    <div className="shg" ref={gridRef}>
+    <div className="shg" ref={rootRef} tabIndex={0} onKeyDown={onKeyDown} onCopy={copySelection} onPaste={pasteAt}>
       <div className="shg-scroll">
         <table className="shg-table">
           <thead>
@@ -508,7 +537,7 @@ export function SheetGrid({
               <th className="shg-corner" style={numStyle} />
               {columns.map((col) => (
                 <th key={col.id}
-                    className={'shg-col' + (isComputed(col) ? ' shg-col-compute' : '') + dndClass('col', col.id)}
+                    className={'shg-col' + (col.type === 'compute' ? ' shg-col-compute' : '') + dndClass('col', col.id)}
                     style={colWidth(col) ? { width: colWidth(col), minWidth: colWidth(col), maxWidth: colWidth(col) } : undefined}
                     {...dndProps('col', col.id)}>
                   {!readOnly && (
@@ -517,8 +546,6 @@ export function SheetGrid({
                   <div className="shg-col-h">
                     <ColumnHeader
                       col={col} columns={columns} readOnly={readOnly}
-                      desc={descOf(col.type)} columnTypes={columnTypes}
-                      renderColumnConfig={renderColumnConfig}
                       menuOpen={menuCol?.id === col.id}
                       menuAnchor={menuCol?.id === col.id ? menuCol.rect : null}
                       onMenu={(e) => setMenuCol(menuCol?.id === col.id ? null
@@ -527,7 +554,8 @@ export function SheetGrid({
                       onRename={renameColumn}
                       onConfigure={configureColumn}
                       onDelete={() => { setMenuCol(null); deleteColumn(col.id); }}
-                      onRun={isComputed(col) && onRunColumn ? () => onRunColumn(col.id) : null} />
+                      onRun={col.type === 'compute' && onRunColumn ? () => onRunColumn(col.id) : null}
+                      width={colWidth(col)} />
                   </div>
                 </th>
               ))}
@@ -538,8 +566,11 @@ export function SheetGrid({
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={row.id} data-row-id={row.id}
-                  style={rowHeight(row) ? { height: rowHeight(row) } : undefined}>
+              <tr key={row.id}
+                  style={{
+                    ...(rowHeight(row) ? { height: rowHeight(row) } : null),
+                    '--shg-clamp': Math.max(1, Math.floor(((rowHeight(row) || 34) - 10) / 18)),
+                  }}>
                 <td className={'shg-rownum' + dndClass('row', row.id)} style={numStyle}
                     title="Drag to reorder" {...dndProps('row', row.id)}>
                   <span>{ri + 1}</span>
@@ -548,56 +579,51 @@ export function SheetGrid({
                     <span className="shg-resize-row" onMouseDown={(e) => startResize(e, 'row', row.id, rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)} />
                   )}
                 </td>
-                {columns.map((col) => {
-                  const c = cells[cellKey(row.id, col.id)] || {};
-                  const computed = isComputed(col);
+                {columns.map((col, ci) => {
+                  const key = cellKey(row.id, col.id);
+                  const c = cells[key] || {};
                   const isEditing = editing && editing.rowId === row.id && editing.colId === col.id;
-                  const peer = peerMarks && peerMarks[cellKey(row.id, col.id)];
-                  // A host owns the whole cell body when it wants to: a running cell's live text
-                  // lives in the host's run store, not in the sheet JSON, so only a closure can
-                  // reach it. Returning undefined falls through to the built-in rendering.
-                  const custom = renderCell && renderCell({
-                    cell: c, column: col, row, rowIndex: ri, sheet, computed,
-                    width: colWidth(col), height: rowHeight(row), editing: !!isEditing, readOnly,
-                    setCell: (v) => setCell(row.id, col.id, v),
-                    runCell: onRunCell && !readOnly ? () => onRunCell(row.id, col.id) : null,
-                  });
+                  const peer = peerLayer.focus[key];
+                  const ghost = !isEditing && peerLayer.typing[key];
+                  const selected = inSel(ri, ci), focused = isFocus(ri, ci);
+                  const shadows = [];
+                  if (focused) shadows.push('inset 0 0 0 2px var(--brand, #0E7490)');
+                  if (peer) shadows.push(`inset 0 0 0 2px ${peer.color}`);
+                  const tint = !selected && peerLayer.tint[key];
                   return (
-                    <td key={col.id} data-col-id={col.id}
-                        className={'shg-cell' + (computed ? ' shg-cell-compute' : '')
-                                   + (c.status && computed ? ` shg-cell-${c.status}` : '')
+                    <td key={col.id} data-cell={key}
+                        className={'shg-cell' + (col.type === 'compute' ? ' shg-cell-compute' : '')
+                                   + (c.status && col.type === 'compute' ? ` shg-cell-${c.status}` : '')
+                                   + (selected ? ' shg-sel' : '') + (focused ? ' shg-focus' : '')
                                    + (peer ? ' shg-cell-peer' : '')}
-                        style={peer ? { boxShadow: `inset 0 0 0 2px ${peer.color}` } : undefined}
-                        onClick={(e) => { if (!isEditing) openEdit(row.id, col, e.currentTarget); }}
+                        style={{ ...(shadows.length ? { boxShadow: shadows.join(', ') } : null),
+                                 ...(tint ? { background: withAlpha(tint, 0.10) } : null) }}
+                        onMouseDown={(e) => {
+                          if (e.button !== 0 || isEditing) return;
+                          if (editing) commitEdit();
+                          const p = { r: ri, c: ci };
+                          setSel((cur) => (e.shiftKey && cur ? { a: cur.a, f: p } : { a: p, f: p }));
+                          dragSel.current = true;
+                          e.preventDefault();
+                          rootRef.current?.focus();
+                        }}
+                        onMouseEnter={() => { if (dragSel.current) setSel((cur) => (cur ? { a: cur.a, f: { r: ri, c: ci } } : cur)); }}
+                        onClick={(e) => { if (col.type === 'checkbox' && !isEditing) openEdit(row.id, col, e.currentTarget); }}
+                        onDoubleClick={(e) => { if (!isEditing) openEdit(row.id, col, e.currentTarget); }}
                         title={c.error || ''}>
-                      {/* The boundaries a spreadsheet lets you grab are the ones you can see, and
-                          from row 20 the header is scrolled away. Both edges of every cell resize
-                          the same column and row the header and the gutter do — same handler,
-                          same drag, just reachable where the person already is. */}
-                      {!readOnly && (
-                        <>
-                          <span className="shg-resize-col shg-resize-in-cell"
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => startResize(e, 'col', col.id,
-                                  colWidth(col) || e.currentTarget.closest('td').offsetWidth)} />
-                          <span className="shg-resize-row shg-resize-in-cell"
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => startResize(e, 'row', row.id,
-                                  rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)} />
-                        </>
-                      )}
                       {peer && <span className="shg-peer-flag" style={{ background: peer.color }}>{peer.name}</span>}
                       {isEditing ? renderEditor(col) : (
-                        <div className="shg-val">
-                          {custom !== undefined ? custom : (
-                            <>
-                              {computed && <StatusDot status={c.status} />}
-                              <CellValue cell={c} col={col} fetchBlobUrl={fetchBlobUrl} onOpenResource={onOpenResource} />
-                              {computed && !readOnly && onRunCell && (
-                                <button className="shg-runcell" title="Run this cell"
-                                        onClick={(e) => { e.stopPropagation(); onRunCell(row.id, col.id); }}>▶</button>
-                              )}
-                            </>
+                        <div className="shg-val"
+                             style={{ maxWidth: (colWidth(col) ? colWidth(col) - 20 : 400) }}>
+                          {col.type === 'compute' && <StatusDot status={c.status} />}
+                          {ghost ? (
+                            <span className="shg-ghost" style={{ color: ghost.color }} title={`${ghost.name} is typing`}>{ghost.text}</span>
+                          ) : (
+                            <CellValue cell={c} col={col} fetchBlobUrl={fetchBlobUrl} onOpenResource={onOpenResource} />
+                          )}
+                          {col.type === 'compute' && !readOnly && onRunCell && (
+                            <button className="shg-runcell" title="Run this cell"
+                                    onClick={(e) => { e.stopPropagation(); onRunCell(row.id, col.id); }}>▶</button>
                           )}
                         </div>
                       )}
@@ -620,16 +646,15 @@ export function SheetGrid({
   );
 }
 
-function ColumnHeader({
-  col, columns, readOnly, desc, columnTypes, renderColumnConfig,
-  menuOpen, menuAnchor, onMenu, onCloseMenu, onRename, onConfigure, onDelete, onRun,
-}) {
+function ColumnHeader({ col, columns, readOnly, menuOpen, menuAnchor, onMenu, onCloseMenu, onRename, onConfigure, onDelete, onRun, width }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(col.name);
   useEffect(() => setName(col.name), [col.name]);
-  const badge = desc.badge ? desc.badge(col) : undefined;
+  // A narrow column keeps its name: the caption goes first, then the Run label.
+  const w = Number(width) || 0;
+  const fit = w && w < 160 ? ' tight' : w && w < 200 ? ' narrow' : '';
   return (
-    <div className="shg-colhdr">
+    <div className={'shg-colhdr' + fit}>
       <div className="shg-colhdr-main">
         {editing && !readOnly ? (
           <input className="shg-colname-input" value={name} autoFocus
@@ -639,20 +664,19 @@ function ColumnHeader({
         ) : (
           <span className="shg-colname" onDoubleClick={() => !readOnly && setEditing(true)} title={col.name}>{col.name}</span>
         )}
-        <span className={'shg-coltype' + (desc.computed ? ' compute' : '')}>
-          {desc.label || col.type}
-          {badge ? ` · ${badge}` : ''}
+        <span className={'shg-coltype' + (col.type === 'compute' ? ' compute' : '')}>
+          {TYPE_LABEL[col.type] || col.type}
+          {col.type === 'compute' && col.compute?.kind ? ` · ${col.compute.kind}` : ''}
         </span>
       </div>
       {!readOnly && (
         <div className="shg-colhdr-tools">
-          {onRun && <button className="shg-colrun" onClick={onRun} title="Run this column">▶ Run</button>}
+          {onRun && <button className="shg-colrun" onClick={onRun} title="Run this column" aria-label="Run this column">▶<span className="shg-colrun-label"> Run</span></button>}
           <button className="shg-colmenu-btn" onClick={(e) => onMenu(e)} title="Column settings">⋯</button>
         </div>
       )}
       {menuOpen && !readOnly && (
         <ColumnMenu col={col} columns={columns} anchor={menuAnchor}
-                    columnTypes={columnTypes} renderColumnConfig={renderColumnConfig}
                     onApply={(patch) => { onConfigure(col.id, patch); onCloseMenu(); }}
                     onDelete={onDelete} onClose={onCloseMenu} />
       )}
@@ -660,13 +684,64 @@ function ColumnHeader({
   );
 }
 
-// The column configuration popover: type, options (select/tags), and the type's own config body.
-// Product-agnostic — plain controlled inputs, applied as one patch. A host that adds a column
-// type supplies renderColumnConfig and owns the body below the Type select.
-function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onApply, onDelete, onClose }) {
+// The column's values as pills in one field: type a value and press Enter or
+// comma to add it, Backspace on an empty field removes the last, and clicking
+// a pill opens the palette to pick its color. Select and tags columns offer
+// these as choices; every column paints a matching value in its color.
+function ValuePills({ values, onChange }) {
+  const [text, setText] = useState('');
+  const [picking, setPicking] = useState(null);   // index of the pill whose palette is open
+  const add = () => {
+    const label = text.trim();
+    if (!label) return;
+    if (!values.some((v) => sameValue(v.label, label))) onChange([...values, { label }]);
+    setText('');
+  };
+  const remove = (i) => { onChange(values.filter((_, j) => j !== i)); setPicking(null); };
+  const paint = (i, color) => { onChange(values.map((v, j) => (j === i ? { ...v, color } : v))); setPicking(null); };
+  return (
+    <div className="shg-values" onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.querySelector('input')?.focus(); }}>
+      {values.map((v, i) => (
+        <span key={v.label} className="shg-value">
+          <button type="button" className="shg-pill shg-pill-btn"
+                  style={{ background: v.color || PILL_FALLBACKS[i % PILL_FALLBACKS.length] }}
+                  title="Pick a color" aria-expanded={picking === i}
+                  onClick={(e) => { e.stopPropagation(); setPicking(picking === i ? null : i); }}>
+            {v.label}
+            <span className="shg-value-x" role="button" aria-label={`Remove ${v.label}`}
+                  onClick={(e) => { e.stopPropagation(); remove(i); }}>×</span>
+          </button>
+          {picking === i && (
+            <span className="shg-swatches" role="listbox" aria-label={`Color for ${v.label}`}>
+              {PILL_PALETTE.map((p) => (
+                <button key={p.name} type="button" role="option" aria-selected={v.color === p.color}
+                        className={'shg-swatch' + (v.color === p.color ? ' on' : '')}
+                        style={{ background: p.color }} title={p.name}
+                        onClick={(e) => { e.stopPropagation(); paint(i, p.color); }} />
+              ))}
+            </span>
+          )}
+        </span>
+      ))}
+      <input className="shg-values-input" value={text} placeholder={values.length ? '' : 'Type a value, press Enter'}
+             onChange={(e) => setText(e.target.value)}
+             onKeyDown={(e) => {
+               if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+               else if (e.key === 'Backspace' && !text && values.length) remove(values.length - 1);
+             }}
+             onBlur={add} />
+    </div>
+  );
+}
+
+// The column configuration popover: type, options (select/tags), and the
+// compute mount (prompt / harness / workflow + deps). Product-agnostic —
+// plain controlled inputs, applied as one patch.
+function ColumnMenu({ col, columns, anchor, onApply, onDelete, onClose }) {
   const [type, setType] = useState(col.type || 'text');
-  const [optText, setOptText] = useState(
-    normOptions(col.options).map((o) => o.label).join('\n'));
+  // The column's values, in order, each with the color it was given (or none).
+  const [values, setValues] = useState(() => (col.options || []).map((o) =>
+    (typeof o === 'string' ? { label: o } : { label: o.label ?? String(o.value ?? ''), ...(o.color ? { color: o.color } : {}) })));
   const comp = col.compute || {};
   const [kind, setKind] = useState(comp.kind || 'prompt');
   const [prompt, setPrompt] = useState(comp.prompt || '');
@@ -674,20 +749,37 @@ function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onA
   const [wfSlug, setWfSlug] = useState(comp.workflow_slug || '');
   const [outKey, setOutKey] = useState(comp.output_key || '');
   const [deps, setDeps] = useState(new Set(comp.deps || []));
+  const ref = useRef(null);
 
-  const others = columns.filter((c) => c.id !== col.id);
-  const toggleDep = (id) => setDeps((s) => {
-    const n = new Set(s);
-    if (n.has(id)) n.delete(id); else n.add(id);
-    return n;
-  });
+  useEffect(() => {
+    // a press inside the prompt's mention menu (a portal on the body) is not "outside"
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target) && !(e.target.closest && e.target.closest('.uic-pop'))) onClose();
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [onClose]);
+
+  // What the prompt may read: the columns to the LEFT of this one (a row fills left to right,
+  // so those hold values when this cell computes). The rest are shown, but say why not.
+  const promptItems = useMemo(() => {
+    const at = columns.findIndex((c) => c.id === col.id);
+    return columns.filter((c) => c.id !== col.id).map((c) => {
+      const idx = columns.findIndex((x) => x.id === c.id);
+      const right = at >= 0 && idx > at;
+      return {
+        id: c.id, name: c.name, kind: c.type, section: right ? 'Fills after this column' : 'Columns',
+        icon: TYPE_GLYPH[c.type] || 'Aa', description: TYPE_LABEL[c.type] || c.type,
+        color: c.type === 'compute' ? '#7C3AED' : undefined,
+        disabled: right ? 'to the right' : false,
+      };
+    });
+  }, [columns, col.id]);
 
   const apply = () => {
     const patch = { type };
-    if (type === 'select' || type === 'tags') {
-      patch.options = optText.split('\n').map((s) => s.trim()).filter(Boolean);
-    }
-    // The built-in 'compute' type's own editor. Any other type's config comes from the host.
+    // A value with a chosen color travels as {label, color}; the rest as labels.
+    patch.options = values.map((v) => (v.color ? { label: v.label, color: v.color } : v.label));
     if (type === 'compute') {
       const compute = { kind, deps: [...deps] };
       if (kind === 'prompt') compute.prompt = prompt;
@@ -698,161 +790,94 @@ function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onA
     onApply(patch);
   };
 
-  // A custom body owns its own primary action, because only it knows when its config is
-  // complete. It gets applyPatch to commit and close in one call.
-  const custom = renderColumnConfig && renderColumnConfig({
-    column: col, columns, type,
-    applyPatch: (patch) => onApply({ type, ...patch }),
-    deleteColumn: onDelete,
-    close: onClose,
-  });
-
-  const desc = columnTypes.find((t) => t.type === type) || {};
   return (
-    <PopPortal anchor={anchor} width={desc.configWidth || 250} estHeight={desc.configHeight || 340}
-               className="shg-menu" onClose={onClose}>
-      <div onClick={(e) => e.stopPropagation()}>
+    <PopPortal anchor={anchor} width={250} estHeight={340} className="shg-menu" onClose={onClose}>
+      <div ref={ref} onClick={(e) => e.stopPropagation()}>
       <label className="shg-menu-lbl">Type
         <select className="shg-menu-input" value={type} onChange={(e) => setType(e.target.value)}>
-          {columnTypes.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
+          {MANUAL_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+          <option value="compute">Computed</option>
         </select>
       </label>
 
-      {(type === 'select' || type === 'tags') && (
-        <label className="shg-menu-lbl">Options (one per line)
-          <textarea className="shg-menu-input" rows={3} value={optText}
-                    onChange={(e) => setOptText(e.target.value)} placeholder={'Todo\nDoing\nDone'} />
-        </label>
-      )}
+      <div className="shg-menu-lbl">{type === 'select' || type === 'tags' ? 'Options' : 'Values'}
+        <ValuePills values={values} onChange={setValues} />
+      </div>
 
-      {custom !== undefined ? custom : (
+      {type === 'compute' && (
         <>
-          {type === 'compute' && (
+          <label className="shg-menu-lbl">Runs
+            <select className="shg-menu-input" value={kind} onChange={(e) => setKind(e.target.value)}>
+              {COMPUTE_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
+            </select>
+          </label>
+          {(kind === 'prompt' || kind === 'harness') && (
+            <div className="shg-menu-lbl">Prompt
+              <div className="shg-menu-input shg-menu-prompt">
+                <MentionInput
+                  value={prompt}
+                  onChange={(v, ms) => { setPrompt(v); setDeps(new Set(ms.map((m) => m.id))); }}
+                  items={promptItems}
+                  placeholder="Summarize @Company in one line"
+                  menuTitle="Columns this cell can read"
+                  emptyText="No column by that name"
+                  label="Prompt"
+                />
+              </div>
+              <div className="shg-menu-hint">Type @ to add a column from this row. Columns to the left fill first.</div>
+            </div>
+          )}
+          {kind === 'harness' && (
+            <label className="shg-menu-lbl">Agent id
+              <input className="shg-menu-input" value={harnessId} onChange={(e) => setHarnessId(e.target.value)} placeholder="chrn_…" />
+            </label>
+          )}
+          {kind === 'workflow' && (
             <>
-              <label className="shg-menu-lbl">Runs
-                <select className="shg-menu-input" value={kind} onChange={(e) => setKind(e.target.value)}>
-                  {COMPUTE_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
-                </select>
+              <label className="shg-menu-lbl">Workflow id
+                <input className="shg-menu-input" value={wfSlug} onChange={(e) => setWfSlug(e.target.value)} placeholder="my-workflow" />
               </label>
-              {(kind === 'prompt' || kind === 'harness') && (
-                <label className="shg-menu-lbl">Prompt — reference columns as {'{{Name}}'}
-                  <textarea className="shg-menu-input" rows={3} value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Summarize {{Company}} in one line" />
-                </label>
-              )}
-              {kind === 'harness' && (
-                <label className="shg-menu-lbl">Agent id
-                  <input className="shg-menu-input" value={harnessId} onChange={(e) => setHarnessId(e.target.value)} placeholder="chrn_…" />
-                </label>
-              )}
-              {kind === 'workflow' && (
-                <>
-                  <label className="shg-menu-lbl">Workflow id
-                    <input className="shg-menu-input" value={wfSlug} onChange={(e) => setWfSlug(e.target.value)} placeholder="my-workflow" />
-                  </label>
-                  <label className="shg-menu-lbl">Output key (optional)
-                    <input className="shg-menu-input" value={outKey} onChange={(e) => setOutKey(e.target.value)} placeholder="summary" />
-                  </label>
-                </>
-              )}
-              {others.length > 0 && (
-                <div className="shg-menu-lbl">Reads columns
-                  <div className="shg-menu-deps">
-                    {others.map((c) => (
-                      <label key={c.id} className="shg-menu-dep">
-                        <input type="checkbox" checked={deps.has(c.id)} onChange={() => toggleDep(c.id)} /> {c.name}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <label className="shg-menu-lbl">Output key (optional)
+                <input className="shg-menu-input" value={outKey} onChange={(e) => setOutKey(e.target.value)} placeholder="summary" />
+              </label>
             </>
           )}
-          <div className="shg-menu-actions">
-            <button className="shg-menu-del" onClick={onDelete}>Delete column</button>
-            <button className="shg-menu-apply" onClick={apply}>Apply</button>
-          </div>
         </>
       )}
+
+      <div className="shg-menu-actions">
+        <button className="shg-menu-del" onClick={onDelete}>Delete column</button>
+        <button className="shg-menu-apply" onClick={apply}>Apply</button>
+      </div>
       </div>
     </PopPortal>
   );
 }
 
-/**
- * The height each row would need to show its content in full, measured from what is on screen.
- *
- * A row is clamped to its height by design — a sheet you cannot scan is not a sheet. But after a
- * run, the thing a person wants is the answer, and an answer cut off at one line with no way to
- * see the rest is the grid hiding the work it just paid for. So the host measures and commits a
- * height, ONCE, rather than the grid guessing continuously.
- *
- * Measured, not estimated: `scrollHeight` is what the content actually occupies at this width,
- * including the file cards. A formula over character counts would be a number nobody derived.
- *
- * Returns { rowId: px } for the rows given (or every row), clamped to [min, max].
- */
-export function fitRowHeights(container, { rowIds, min = 34, max = 320, padding = 12 } = {}) {
-  if (!container) return {};
-  const out = {};
-  const rows = container.querySelectorAll('tr[data-row-id]');
-  for (const tr of rows) {
-    const id = tr.getAttribute('data-row-id');
-    if (rowIds && !rowIds.includes(id)) continue;
-    let tallest = 0;
-    for (const cell of tr.querySelectorAll('td[data-col-id] .shg-val')) {
-      // The value box is clipped to the row; its scrollHeight is the content's real height.
-      tallest = Math.max(tallest, cell.scrollHeight);
-    }
-    if (tallest) out[id] = Math.min(max, Math.max(min, Math.round(tallest + padding)));
-  }
-  return out;
-}
-
 // ── Export helpers (CSV / TSV / array-of-arrays) ─────────────────────────────
-// cellText(cell, column) lets a host say what one of its own column types is worth in a flat
-// file. Without it a cell whose value is an object exports as raw JSON, which is what a
-// spreadsheet export must never be.
-function defaultCellText(cell) {
-  const v = cell?.value;
-  if (v == null) return '';
-  if (Array.isArray(v)) return v.join(', ');
-  if (typeof v === 'object') return JSON.stringify(v);
-  return String(v);
-}
-
-export function sheetToDelimited(sheet, sep = ',', { cellText = defaultCellText } = {}) {
+export function sheetToDelimited(sheet, sep = ',') {
   const cols = sheet?.columns || [];
   const rows = sheet?.rows || [];
   const cells = sheet?.cells || {};
-  const esc = (s) => {
+  const esc = (v) => {
+    const s = v == null ? '' : (Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
     if (sep === ',' && /[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
   const header = cols.map((c) => esc(c.name)).join(sep);
-  const body = rows.map((r) => cols.map((c) => (
-    esc(String(cellText(cells[cellKey(r.id, c.id)], c) ?? ''))
-  )).join(sep));
+  const body = rows.map((r) => cols.map((c) => {
+    const cell = cells[cellKey(r.id, c.id)];
+    return esc(cell ? cell.value : '');
+  }).join(sep));
   return [header, ...body].join('\n');
 }
 
-/** Rows as an array-of-arrays (header first) — feed to an xlsx writer.
- *
- *  The default keeps numbers and booleans as themselves: a spreadsheet writer stores a JS number
- *  as a numeric cell, and stringifying here would hand the person a column they cannot sum. */
-function defaultCellValue(cell) {
-  const v = cell?.value;
-  if (v == null) return '';
-  if (Array.isArray(v)) return v.join(', ');
-  if (typeof v === 'object') return JSON.stringify(v);
-  return v;
-}
-
-export function sheetToAoA(sheet, { cellText = defaultCellValue } = {}) {
+/** Rows as an array-of-arrays (header first) — feed to an xlsx writer. */
+export function sheetToAoA(sheet) {
   const cols = sheet?.columns || [];
   const rows = sheet?.rows || [];
   const cells = sheet?.cells || {};
+  const val = (v) => (v == null ? '' : (Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : v)));
   return [cols.map((c) => c.name),
-          ...rows.map((r) => cols.map((c) => cellText(cells[cellKey(r.id, c.id)], c) ?? ''))];
+          ...rows.map((r) => cols.map((c) => val(cells[cellKey(r.id, c.id)]?.value)))];
 }

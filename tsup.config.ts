@@ -19,16 +19,18 @@ export default defineConfig({
   // root re-export would put a charting library in the dependency graph of every app that
   // imports a Button. The PANEL and the GRID a chart usually sits in are in the root index —
   // they have no chart dependency, and a board of tables should cost nothing.
-  entry: { index: 'src/index.js', slides: 'src/slides/index.js', harness: 'src/harness/index.js', chart: 'src/chart/index.js' },
+  entry: { index: 'src/index.js', slides: 'src/slides/index.js', harness: 'src/harness/index.js', chart: 'src/chart/index.js',
+           collab: 'src/collab/index.js', sheet: 'src/sheet/index.js', 'sheet-doc': 'src/sheet/sheetDoc.js', graph: 'src/graph/index.js' },
   format: ['esm', 'cjs'],
   target: 'es2020',
   platform: 'browser',
   sourcemap: true,
   clean: true,
   // Every runtime dependency is a peer the host app already owns — never bundle them.
-  external: [/^react($|\/)/, /^react-dom($|\/)/, /^highlight\.js($|\/)/, 'mermaid', 'echarts'],
+  external: [/^react($|\/)/, /^react-dom($|\/)/, /^highlight\.js($|\/)/, 'mermaid', 'echarts',
+             /^yjs($|\/)/, /^@hocuspocus\//, /^lucide-react($|\/)/],
   esbuildOptions(options) {
     options.jsx = 'automatic';
   },
-  onSuccess: 'cp src/index.d.ts dist/index.d.ts && cp src/slides/index.d.ts dist/slides.d.ts && cp src/harness/index.d.ts dist/harness.d.ts && cp src/chart/index.d.ts dist/chart.d.ts',
+  onSuccess: 'cp src/index.d.ts dist/index.d.ts && cp src/slides/index.d.ts dist/slides.d.ts && cp src/harness/index.d.ts dist/harness.d.ts && cp src/chart/index.d.ts dist/chart.d.ts && cp src/collab/index.d.ts dist/collab.d.ts && cp src/sheet/index.d.ts dist/sheet.d.ts && cp src/sheet/doc.d.ts dist/sheet-doc.d.ts && cp src/graph/index.d.ts dist/graph.d.ts',
 });

@@ -44,7 +44,7 @@ export {
 export { AuthForm } from './auth/AuthForm.jsx';
 export { GoogleButton, GOOGLE_ENABLED } from './auth/GoogleButton.jsx';
 // Shared AI-spreadsheet grid (reusable in the Sheets product AND studio Spaces).
-export { SheetGrid, sheetToDelimited, sheetToAoA, fitRowHeights } from './sheet/SheetGrid.jsx';
+export { SheetGrid, sheetToDelimited, sheetToAoA } from './sheet/SheetGrid.jsx';
 // Files, drawn the same wherever they appear. FileTypeIcon uses react-file-icon when it is
 // installed (an optional peer) and falls back to an extension badge when it is not.
 export { FileTypeIcon, extOf } from './components/FileTypeIcon.jsx';
@@ -85,3 +85,6 @@ export {
   Timeline, majorTickStep, tickLabel, durationLabel as timelineDurationLabel,
   TL_MIN_PPS, TL_MAX_PPS, TL_DEFAULT_PPS, TL_HEAD_W,
 } from './timeline/Timeline.jsx';
+// Mentions: a field that holds people, columns, files as pills; the menu at the caret; the
+// read-only renderer; and the token model ({{Name}} / @Name) hosts serialize through.
+export { MentionInput, MentionText } from './mention/MentionInput.jsx';

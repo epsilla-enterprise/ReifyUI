@@ -326,6 +326,35 @@ Three pieces a board needs are stylesheet-only, with no component to import: `.u
 headline number, `.uic-dtable` for a result table that scrolls inside its own box, and `.uic-note`
 for a panel that ran and found nothing. Compose them directly.
 
+## Collaboration
+
+Any surface can be live: `reifyui/collab` is one document core (Yjs through a Hocuspocus
+provider) with presence colours and a worker-clock keep-alive, so a hidden tab's cursor never
+lapses. It is a separate entry because it pulls in `yjs` and `@hocuspocus/provider`; importing
+a Button never costs a CRDT.
+
+```js
+import { useLiveDoc, keepPresenceAlive, peerColor } from 'reifyui/collab';
+
+const live = useLiveDoc({ url, name: `cg-sheet:${id}`, token });
+```
+
+`reifyui/sheet` binds the spreadsheet to it: `useSheetCollab` turns the live document into the
+grid's `sheet` + `ops` + `peers`, `useSheetRun` and `RunStrip` drive a batch run, and `sheetDoc`
+is the document family every writer speaks (browsers and services alike). A service that has no
+React imports the family alone from `reifyui/sheet-doc`.
+
+`reifyui/graph` does the same for a graph resource: `useGraphCollab` makes the canvas live, and
+the `ConnectPane` / `LogsPane` surfaces take an injected `client` (`getConnect`, `putConnect`,
+`testConnectTool`, `listConnectKeys`, `createConnectKey`, `revokeConnectKey`, `fetchAudit`,
+`endpointUrl(path)`) bound to the host's API and auth; the graph transport is configured once
+with `configureVgraph(transport)`. Nothing in the package knows a host's API base.
+
+Stylesheets: `reifyui/styles/sheet.css`, `reifyui/styles/graph.css` (the panes; they render
+their dialogs in the package's Modal, so also `reifyui/styles/preview.css`) and
+`reifyui/styles/mention.css` for `MentionInput`, the field that holds people, columns and files
+as pills with a menu at the caret.
+
 ## Optional: auth client
 
 ReifyUI includes a small, framework-agnostic auth client for products whose backend exposes a JSON
