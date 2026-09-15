@@ -166,7 +166,7 @@ function DetailBlock({ entry }) {
   );
 }
 
-function Row({ entry, open, onToggle }) {
+function Row({ entry, open, onToggle, copilotMark }) {
   const kind = opKind(entry.op, entry.status);
   return (
     <div className={'lg-row-wrap' + (open ? ' open' : '')}>
@@ -310,7 +310,7 @@ export function LogsPane({ graphId, client, copilotMark }) {
           <>
             <div className="lg-list scroll">
               {entries.map((e) => (
-                <Row key={e.id} entry={e} open={open.has(e.id)} onToggle={() => toggle(e.id)} />
+                <Row key={e.id} entry={e} open={open.has(e.id)} onToggle={() => toggle(e.id)} copilotMark={copilotMark} />
               ))}
               {nextCursor && (
                 <div className="lg-more">
