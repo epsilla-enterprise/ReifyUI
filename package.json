@@ -1,7 +1,7 @@
 {
   "name": "reifyui",
-  "version": "0.13.1",
-  "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI \u2014 model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
+  "version": "0.13.2",
+  "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI — model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
   "keywords": [
     "react",
     "generative-ui",
@@ -73,6 +73,31 @@
     },
     "./styles/*": "./styles/*",
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "slides": [
+        "dist/slides.d.ts"
+      ],
+      "harness": [
+        "dist/harness.d.ts"
+      ],
+      "chart": [
+        "dist/chart.d.ts"
+      ],
+      "collab": [
+        "dist/collab.d.ts"
+      ],
+      "sheet": [
+        "dist/sheet.d.ts"
+      ],
+      "sheet-doc": [
+        "dist/sheet-doc.d.ts"
+      ],
+      "graph": [
+        "dist/graph.d.ts"
+      ]
+    }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

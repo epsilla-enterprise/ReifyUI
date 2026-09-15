@@ -136,6 +136,40 @@ textarea.rui-dlg-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 }
 .rui-dlg-type-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Starting-point list in the create dialog (templates). Rows read as radio options; the list
+   scrolls past a handful so the card keeps its height. */
+.rui-dlg-choices { margin-top: 12px; }
+.rui-dlg-choice-list {
+  max-height: 216px; overflow-y: auto;
+  border: 1px solid var(--uic-line, rgba(15, 23, 42, .12));
+  border-radius: 10px;
+  background: var(--uic-surface, #fff);
+}
+.rui-dlg-choice {
+  display: flex; align-items: flex-start; gap: 10px;
+  width: 100%; padding: 9px 12px;
+  text-align: left; font: inherit; font-size: 13px;
+  background: none; border: 0; border-bottom: 1px solid var(--uic-line-soft, rgba(15, 23, 42, .06));
+  cursor: pointer; color: var(--uic-ink, #0f172a);
+}
+.rui-dlg-choice:last-child { border-bottom: 0; }
+.rui-dlg-choice:hover { background: var(--uic-surface-2, #f8fafc); }
+.rui-dlg-choice.is-on { background: var(--uic-brand-soft, rgba(40, 90, 255, .08)); }
+.rui-dlg-choice-dot {
+  flex-shrink: 0; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%;
+  border: 1.5px solid var(--uic-line, rgba(15, 23, 42, .28)); background: var(--uic-surface, #fff);
+}
+.rui-dlg-choice.is-on .rui-dlg-choice-dot {
+  border-color: var(--uic-brand, #285aff);
+  box-shadow: inset 0 0 0 3.5px var(--uic-surface, #fff); background: var(--uic-brand, #285aff);
+}
+.rui-dlg-choice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rui-dlg-choice-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.rui-dlg-choice-desc {
+  font-size: 12px; color: var(--uic-mute, #475569); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* Narrow viewports: the card becomes a bottom sheet and the actions go full-width, so
    nothing crushes and the primary action stays reachable with a thumb. */
 @media (max-width: 480px) {

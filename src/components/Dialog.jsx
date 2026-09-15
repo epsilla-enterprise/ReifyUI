@@ -241,19 +241,43 @@ function PromptBody({ spec, onClose, t, titleId }) {
 }
 
 // Pick-a-type-then-name, for "New …" flows where the thing being created has variants. The
-// caller supplies `types: [{ kind, label, color, icon }]`, so this stays icon-library agnostic.
-// Resolves to { kind, name } or null.
+// caller supplies `types: [{ kind, label, color, icon, choices? }]`, so this stays icon-library
+// agnostic. A type may offer a starting point (`choices: { label, load, defaultId }`, where
+// load() resolves to [{ id, name, description? }], typically templates); the list is fetched
+// when the type is first selected and the chosen id rides along as `choice`.
+// Resolves to { kind, name, choice? } or null.
 function CreateBody({ spec, onClose, t, titleId }) {
   const types = spec.types || [];
   const [kind, setKind] = useState(spec.defaultKind || types[0]?.kind || '');
   const [value, setValue] = useState(spec.defaultValue ?? '');
   const [err, setErr] = useState(null);
+  const [lists, setLists] = useState({});
   const inputId = useId();
   const sel = types.find((x) => x.kind === kind) || types[0] || {};
 
+  useEffect(() => {
+    const ch = sel.choices;
+    if (!ch || lists[kind]) return undefined;
+    let dead = false;
+    setLists((m) => ({ ...m, [kind]: { status: 'loading', items: [], chosen: ch.defaultId ?? null } }));
+    Promise.resolve().then(() => ch.load()).then((items) => {
+      if (dead) return;
+      const arr = Array.isArray(items) ? items : [];
+      const chosen = arr.some((it) => it.id === ch.defaultId) ? ch.defaultId : (arr[0]?.id ?? ch.defaultId ?? null);
+      setLists((m) => ({ ...m, [kind]: { status: 'ready', items: arr, chosen } }));
+    }).catch(() => {
+      if (dead) return;
+      setLists((m) => ({ ...m, [kind]: { status: 'failed', items: [], chosen: ch.defaultId ?? null } }));
+    });
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
+  const pick = (id) => setLists((m) => ({ ...m, [kind]: { ...m[kind], chosen: id } }));
+
   const submit = () => {
     if (spec.required !== false && !String(value).trim()) { setErr(t.required); return; }
-    onClose({ kind, name: String(value).trim() });
+    const entry = sel.choices ? lists[kind] : null;
+    onClose({ kind, name: String(value).trim(), ...(entry ? { choice: entry.chosen } : {}) });
   };
 
   return (
@@ -293,6 +317,7 @@ function CreateBody({ spec, onClose, t, titleId }) {
           spellCheck="false"
         />
         {err ? <div className="rui-dlg-err">{err}</div> : null}
+        {sel.choices ? <ChoiceList label={sel.choices.label} entry={lists[kind]} onPick={pick} /> : null}
       </div>
       <Footer>
         <button type="button" className="rui-dlg-btn rui-dlg-secondary" onClick={() => onClose(null)}>
@@ -303,5 +328,36 @@ function CreateBody({ spec, onClose, t, titleId }) {
         </button>
       </Footer>
     </>
+  );
+}
+
+// The starting-point list under the name: one row per choice, the chosen one marked; scrolls
+// past a handful so the dialog keeps its height on a phone.
+function ChoiceList({ label, entry, onPick }) {
+  const labelId = useId();
+  const status = entry?.status || 'loading';
+  return (
+    <div className="rui-dlg-choices" role="radiogroup" aria-labelledby={labelId}>
+      <div className="rui-dlg-label" id={labelId}>{label}</div>
+      {status === 'loading' ? <div className="rui-dlg-help">Loading</div> : null}
+      {status === 'failed' ? <div className="rui-dlg-help">The list could not be loaded. The default will be used.</div> : null}
+      {status === 'ready' && entry.items.length > 0 ? (
+        <div className="rui-dlg-choice-list">
+          {entry.items.map((it) => {
+            const on = it.id === entry.chosen;
+            return (
+              <button key={it.id} type="button" role="radio" aria-checked={on}
+                      className={`rui-dlg-choice${on ? ' is-on' : ''}`} onClick={() => onPick(it.id)}>
+                <span className="rui-dlg-choice-dot" aria-hidden="true" />
+                <span className="rui-dlg-choice-text">
+                  <span className="rui-dlg-choice-name">{it.name}</span>
+                  {it.description ? <span className="rui-dlg-choice-desc">{it.description}</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }

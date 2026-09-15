@@ -88,3 +88,4 @@ export {
 // Mentions: a field that holds people, columns, files as pills; the menu at the caret; the
 // read-only renderer; and the token model ({{Name}} / @Name) hosts serialize through.
 export { MentionInput, MentionText } from './mention/MentionInput.jsx';
+export * as mention from './mention/mentionModel.js';

@@ -465,7 +465,14 @@ export interface PromptOptions extends ConfirmOptions {
   /** Return an error message to reject, or null/undefined to accept. */
   validate?: (value: string) => string | null | undefined;
 }
-export interface CreateType { kind: string; label: string; color?: string; icon?: ReactNode; }
+/** A starting point offered under the name for one type (templates): load() resolves to the list,
+ *  defaultId is preselected when present, and the chosen id comes back as `choice`. */
+export interface CreateChoices {
+  label: string;
+  load: () => Promise<Array<{ id: string; name: string; description?: string }>> | Array<{ id: string; name: string; description?: string }>;
+  defaultId?: string;
+}
+export interface CreateType { kind: string; label: string; color?: string; icon?: ReactNode; choices?: CreateChoices; }
 export interface CreateOptions extends PromptOptions {
   types?: CreateType[]; defaultKind?: string;
 }
@@ -474,7 +481,7 @@ export interface DialogApi {
   confirm(opts: ConfirmOptions): Promise<boolean>;
   /** Resolves to the entered string, or null when cancelled. */
   prompt(opts: PromptOptions): Promise<string | null>;
-  create(opts: CreateOptions): Promise<{ kind: string; name: string } | null>;
+  create(opts: CreateOptions): Promise<{ kind: string; name: string; choice?: string | null } | null>;
   labels: Required<DialogLabels>;
 }
 export const DialogHost: ComponentType<{
@@ -774,3 +781,22 @@ export const TL_MIN_PPS: number;
 export const TL_MAX_PPS: number;
 export const TL_DEFAULT_PPS: number;
 export const TL_HEAD_W: number;
+
+// ── Mention model — the pill formats and the pure helpers behind MentionInput, namespaced so a
+// host can write and parse the same text the input does (`mention.CHAT_LINK`, `mention.mentionsOf`).
+export interface MentionFormatSpec { open?: string; close?: string; write?: (item: { id: string; name: string }) => string; pattern?: RegExp }
+export interface MentionItem { id: string; name: string; [key: string]: unknown }
+export interface MentionSegment { type: 'text' | 'mention'; text?: string; id?: string; name?: string }
+export const mention: {
+  CURLY: MentionFormatSpec;
+  AT: MentionFormatSpec;
+  CHAT_LINK: MentionFormatSpec;
+  makeResolver(items: MentionItem[]): { get(name: string): MentionItem | undefined; byId(id: string): MentionItem | undefined; names(): string[] };
+  parseValue(value: string, format: MentionFormatSpec, resolver: ReturnType<typeof mention.makeResolver>): MentionSegment[];
+  serializeSegments(segments: MentionSegment[], format: MentionFormatSpec): string;
+  mentionsOf(segments: MentionSegment[]): MentionItem[];
+  scoreItem(item: MentionItem, query: string): number;
+  searchItems(items: MentionItem[], query: string): MentionItem[];
+  groupItems(items: MentionItem[], query: string): Array<{ section: string; items: MentionItem[] }>;
+  activeTrigger(textBeforeCaret: string, trigger?: string, maxLen?: number): { query: string; start: number } | null;
+};
