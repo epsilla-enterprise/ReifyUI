@@ -1,4 +1,4 @@
-@import '../mention/mention.css';
+@import './mention.css';
 /* SheetGrid — shared spreadsheet grid styles (UI Core). Product-neutral;
    uses --brand/--line/etc tokens so each host (Sheets, studio Spaces) themes
    it with its own palette. */
