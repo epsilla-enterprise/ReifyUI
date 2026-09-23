@@ -76,7 +76,13 @@ function PopPortal({ anchor, width = 250, estHeight = 300, className, children, 
   const boxRef = useRef(null);
   useEffect(() => {
     if (!onClose) return undefined;
-    const close = () => onClose();
+    // A scroll OUTSIDE the box closes it (the anchor moved); scrolling inside it (a long prompt,
+    // a long option list) is the box's own. Backported from 0.13.0 (f9d93d9): without it the
+    // column configuration vanished the moment its prompt was scrolled.
+    const close = (e) => {
+      if (e?.type === 'scroll' && boxRef.current && e.target instanceof Node && boxRef.current.contains(e.target)) return;
+      onClose();
+    };
     // mousedown, not click: React 18 flushes a listener attached in this effect synchronously
     // during the very discrete event that opened the popover, so a `click` listener closes the
     // box before it paints. A press inside the anchor is also ignored — that is the trigger's
