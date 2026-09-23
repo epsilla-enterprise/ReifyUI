@@ -91,6 +91,9 @@ export function ChatPanel(props) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  // A turn this tab started but can no longer hear: its stream broke after the gateway accepted
+  // it. Its messages come from history until it settles.
+  const [dropped, setDropped] = useState(false);
   const [histLoading, setHistLoading] = useState(true);
   const [staged, setStaged] = useState([]);      // files picked, not yet sent
   const [attachErr, setAttachErr] = useState('');
@@ -182,12 +185,25 @@ export function ChatPanel(props) {
       }
       pendingRef.current = null;
       setConnecting(false);
+      if (out.dropped) {
+        // The turn is running and this tab lost its stream. Never resend: that starts a second
+        // turn behind the first (a game played twice at once, a deck written twice). The message
+        // stays as sent, the answer stays "running", and history fills it in below.
+        setDropped(true);
+        return;
+      }
       updateLastAsst((a) => (a.status === 'running' ? { ...a, status: 'done' } : a));
       api.current.onChanged?.();
-    } catch {
-      dropRunningAsst();
-      pendingRef.current = { text, files };
-      setConnecting(true);
+    } catch (e) {
+      // A refused turn is an answer, not a gateway still coming up: a wall, a bad request, a
+      // session busy with another turn. Say so on the message and leave it there; resending
+      // every twenty seconds is what filled a pane with "connecting" over a game that was
+      // playing fine (2026-09-22).
+      updateLastAsst((a) => ({
+        ...a,
+        blocks: a.blocks.length ? a.blocks : withText([], (e && e.message) || 'The turn could not be started.'),
+        status: 'failed',
+      }));
     } finally {
       setBusy(false);
     }
@@ -271,6 +287,24 @@ export function ChatPanel(props) {
     }, RETRY_MS);
     return () => window.clearInterval(iv);
   }, [connecting, busy, deliver]);
+
+  // A turn this tab started and lost the stream of: poll its history until the turn settles,
+  // then one last reload for the final answer and whatever it changed.
+  useEffect(() => {
+    if (!dropped) return undefined;
+    let dead = false;
+    const tick = () => Promise.resolve(api.current.loadHistory(sessionId)).then((hist) => {
+      if (dead || !hist?.length) return;
+      const last = hist[hist.length - 1];
+      const settled = !(last.role === 'assistant' && last.status === 'running')
+        && !externalBusy;
+      setMessages(hist);
+      if (settled) { setDropped(false); api.current.onChanged?.(); }
+    }).catch(() => {});
+    const iv = window.setInterval(tick, POLL_MS);
+    return () => { dead = true; window.clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropped, externalBusy, sessionId]);
 
   // A turn may be running that this tab did not start. While that is true and nothing local is
   // streaming, poll history so its messages appear; when it ends, reload once so the final answer
@@ -380,6 +414,7 @@ export function ChatPanel(props) {
         {title ? <span className="uic-chat-title" title={title}>{title}</span> : null}
         {headerRight}
         {connecting ? <span className="uic-chat-conn">{connectingLabel}</span> : null}
+        {dropped ? <span className="uic-chat-conn">{workingLabel}</span> : null}
       </div>
 
       <div className="uic-chat-body" ref={bodyRef} onScroll={onBodyScroll} role="log" aria-live="polite">
