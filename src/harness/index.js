@@ -202,17 +202,22 @@ export async function streamTurn({ sessionId, harnessId, input, instructions, ha
     hid = h.id;
   }
   const existing = sessionId ? String(sessionId) : '';
-  const res = await fetch(`${CONFIG.base}/responses`, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
-    body: JSON.stringify({
-      input,
-      ...(instructions ? { instructions } : {}),
-      metadata: { harness_id: hid, ...(existing ? { session_id: existing } : {}) },
-      stream: true,
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(`${CONFIG.base}/responses`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+      body: JSON.stringify({
+        input,
+        ...(instructions ? { instructions } : {}),
+        metadata: { harness_id: hid, ...(existing ? { session_id: existing } : {}) },
+        stream: true,
+      }),
+    });
+  } catch {
+    return { connecting: true };   // nothing reached the gateway (down, or restarting): safe to send again
+  }
   if (res.status === 503) return { connecting: true };
   if (!res.ok || !res.body) {
     const t = await res.text().catch(() => '');
@@ -225,13 +230,21 @@ export async function streamTurn({ sessionId, harnessId, input, instructions, ha
     ...handlers,
     onError: (msg) => { sawError = true; handlers.onError?.(msg); },
   });
-  await readSSEStream(res.body, (data) => {
-    let evt;
-    try { evt = JSON.parse(data); } catch { return; }   // malformed frame
-    const found = sessionIdOf(evt);
-    if (found && found !== sid) { sid = found; handlers.onSession?.(found); }
-    d.dispatch(evt);
-  });
+  try {
+    await readSSEStream(res.body, (data) => {
+      let evt;
+      try { evt = JSON.parse(data); } catch { return; }   // malformed frame
+      const found = sessionIdOf(evt);
+      if (found && found !== sid) { sid = found; handlers.onSession?.(found); }
+      d.dispatch(evt);
+    });
+  } catch {
+    // The gateway ACCEPTED the turn (200) and the stream broke afterwards: a console rollout
+    // that stopped the old slot, a proxy timeout, a network blink. The turn is running without
+    // this stream, so sending the message again would start a second one; the caller attaches
+    // to the one that exists instead (its history, polled until it settles).
+    return { ok: false, dropped: true, sessionId: sid };
+  }
   return { ok: !sawError, sessionId: sid };
 }
 
