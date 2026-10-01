@@ -49,6 +49,7 @@ function kindOf(name, mime = '') {
   if (mime.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(e)) return 'audio';
   if (e === 'csv' || e === 'tsv') return 'csv';
   if (e === 'md' || e === 'markdown') return 'markdown';
+  if (e === 'html' || e === 'htm') return 'html';     // the page itself, or its source: the header switches
   if (SHEET.has(e)) return 'sheet';
   if (OFFICE.has(e)) return 'office';
   if (mime.startsWith('text/') || LANG[e] || /^(txt|log|env|conf|cfg|gitignore)$/.test(e)) return 'code';
@@ -98,6 +99,9 @@ export function FilePreview({
   const { url, name } = file || {};
   const [st, setSt] = useState({ kind: 'loading' });
   const [tab, setTab] = useState(0);
+  // An HTML file opens as the page it is; Source shows what was written. The choice lives in the
+  // header, beside the name, so it reads as a property of the file being looked at.
+  const [view, setView] = useState('preview');
 
   useEffect(() => {
     if (!url) return undefined;
@@ -105,6 +109,7 @@ export function FilePreview({
     let obj;
     setSt({ kind: 'loading' });
     setTab(0);
+    setView('preview');
     const get = fetchFile || ((u) => fetch(u, { cache: 'no-store' }));
 
     (async () => {
@@ -142,7 +147,7 @@ export function FilePreview({
         }
         return;
       }
-      if (kind === 'csv' || kind === 'markdown' || kind === 'code') {
+      if (kind === 'csv' || kind === 'markdown' || kind === 'code' || kind === 'html') {
         const text = await res.text();
         if (!alive) return;
         if (kind === 'csv') setSt({ kind: 'csv', rows: delimitedToRows(text, extOf(name) === 'tsv' ? '\t' : ',') });
@@ -164,6 +169,14 @@ export function FilePreview({
       <header className="uic-fp-head">
         <span className="uic-fp-ic"><FileTypeIcon name={name} size={20} /></span>
         <span className="uic-fp-name" title={name}>{name}</span>
+        {st.kind === 'html' && (
+          <div className="uic-fp-seg" role="tablist" aria-label="Show the page or its source">
+            {[['preview', 'Preview'], ['source', 'Source']].map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={view === id}
+                      className={'uic-fp-seg-btn' + (view === id ? ' is-on' : '')} onClick={() => setView(id)}>{label}</button>
+            ))}
+          </div>
+        )}
         <button type="button" className="uic-fp-btn" aria-label={`Download ${name}`} title="Download"
                 onClick={download}><IcDownload /></button>
         {onClose && (
@@ -184,6 +197,12 @@ export function FilePreview({
           </div>
         )}
         {st.kind === 'code' && <CodeBlock code={st.text || ''} lang={LANG[extOf(name)] || 'plaintext'} />}
+        {st.kind === 'html' && view === 'source' && <CodeBlock code={st.text || ''} lang="xml" />}
+        {st.kind === 'html' && view === 'preview' && (
+          // The page runs in its own origin with scripts only: a mockup's own script and styles
+          // work, and nothing in it can read the host page, its cookies or its storage.
+          <iframe className="uic-fp-frame" title={name} sandbox="allow-scripts" srcDoc={st.text || ''} />
+        )}
         {st.kind === 'csv' && <Grid rows={st.rows} />}
         {st.kind === 'sheet' && st.sheets && (
           <div className="uic-fp-xlsx">
