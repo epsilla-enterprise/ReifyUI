@@ -123,7 +123,7 @@ export function FilePreview({
         // The rendition needs the same transport, so it is fetched to a blob rather than handed
         // to an <iframe src> that would carry no credentials.
         if (!officePdfUrl) {
-          setSt({ kind: 'binary', error: 'This format has no inline preview here — download it to open it.' });
+          setSt({ kind: 'binary', error: 'This format has no preview here. Download it to open it.' });
           return;
         }
         const r = await get(officePdfUrl(url));
@@ -134,7 +134,7 @@ export function FilePreview({
       }
       if (kind === 'sheet') {
         if (!parseWorkbook) {
-          setSt({ kind: 'binary', error: 'This format has no inline preview here — download it to open it.' });
+          setSt({ kind: 'binary', error: 'This format has no preview here. Download it to open it.' });
           return;
         }
         try {
