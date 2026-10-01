@@ -34,6 +34,7 @@ const LANG = {
   sh: 'bash', bash: 'bash', zsh: 'bash', sql: 'sql', css: 'css', scss: 'scss', less: 'less',
   html: 'xml', htm: 'xml', xml: 'xml', svg: 'xml', json: 'json', yaml: 'yaml', yml: 'yaml',
   toml: 'ini', ini: 'ini', r: 'r', lua: 'lua', pl: 'perl', dockerfile: 'dockerfile', diff: 'diff',
+  md: 'markdown', txt: 'plaintext', log: 'plaintext', csv: 'plaintext',
 };
 
 // Presentations and word documents render faithfully through the server's PDF rendition.
@@ -196,8 +197,8 @@ export function FilePreview({
             {renderMarkdown ? renderMarkdown(st.text || '') : <pre className="uic-fp-pre">{st.text}</pre>}
           </div>
         )}
-        {st.kind === 'code' && <CodeBlock code={st.text || ''} lang={LANG[extOf(name)] || 'plaintext'} />}
-        {st.kind === 'html' && view === 'source' && <CodeBlock code={st.text || ''} lang="xml" />}
+        {st.kind === 'code' && <CodeBlock code={st.text || ''} language={LANG[extOf(name)] || 'plaintext'} />}
+        {st.kind === 'html' && view === 'source' && <CodeBlock code={st.text || ''} language="xml" />}
         {st.kind === 'html' && view === 'preview' && (
           // The page runs in its own origin with scripts only: a mockup's own script and styles
           // work, and nothing in it can read the host page, its cookies or its storage.
