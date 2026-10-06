@@ -23,6 +23,24 @@ export function GoogleButton({ onCredential, onError, divider = true }) {
     if (!CLIENT_ID || !ref.current) return undefined;
     const SRC = 'https://accounts.google.com/gsi/client';
     let done = false;
+    let drawn = 0;
+    let observer = null;
+    // Google draws its button at the width it is given (200 to 400 px). Give it
+    // the width of the box it sits in, the form's, so it lines up with the inputs
+    // and the Sign in button; draw it again when that width changes (a dialog
+    // that becomes a sheet on a phone).
+    const draw = () => {
+      const g = window.google;
+      if (!g?.accounts?.id || !ref.current) return;
+      const box = ref.current.getBoundingClientRect().width || 320;
+      const width = Math.round(Math.max(200, Math.min(400, box)));
+      if (Math.abs(width - drawn) < 2) return;
+      drawn = width;
+      ref.current.innerHTML = '';
+      g.accounts.id.renderButton(ref.current, {
+        theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width,
+      });
+    };
     const render = () => {
       if (done) return;
       const g = window.google;
@@ -36,10 +54,11 @@ export function GoogleButton({ onCredential, onError, divider = true }) {
             else cb.current.onError?.('Google sign in was cancelled.');
           },
         });
-        ref.current.innerHTML = '';
-        g.accounts.id.renderButton(ref.current, {
-          theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 320,
-        });
+        draw();
+        if (typeof ResizeObserver === 'function') {
+          observer = new ResizeObserver(() => { try { draw(); } catch { /* keep the last drawing */ } });
+          observer.observe(ref.current);
+        }
       } catch {
         setFailed(true);
       }
@@ -65,6 +84,7 @@ export function GoogleButton({ onCredential, onError, divider = true }) {
     return () => {
       s?.removeEventListener('load', render);
       window.clearTimeout(check);
+      observer?.disconnect();
     };
   }, []);
 
