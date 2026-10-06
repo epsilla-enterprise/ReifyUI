@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const CLIENT_ID = '247853836408-ojk91u8901hdlbkevid4fohmrfdot17l.apps.googleusercontent.com';
 
-export function GoogleButton({ onCredential, onError }) {
+export function GoogleButton({ onCredential, onError, divider = true }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
   // Keep the latest callbacks in a ref so the GIS button mounts exactly once
@@ -71,7 +71,7 @@ export function GoogleButton({ onCredential, onError }) {
   if (!CLIENT_ID || failed) return null;
   return (
     <>
-      <div className="auth-or"><span>or</span></div>
+      {divider && <div className="auth-or"><span>or</span></div>}
       <div ref={ref} className="auth-gwrap" />
     </>
   );

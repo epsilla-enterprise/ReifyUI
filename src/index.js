@@ -38,11 +38,12 @@ export { DialogHost, useDialog } from './components/Dialog.jsx';
 export {
   configureAuth, authConfig, SESSION_EVENT,
   getSession, clearSession, getToken, isAuthed,
-  login, register, googleSignIn, requestPasswordReset, switchOrg,
+  login, register, googleSignIn, microsoftSignIn, requestPasswordReset, switchOrg,
   refreshToken, handleAuthExpired, logout, authFetch, fetchBalance,
 } from './auth/client.js';
 export { AuthForm } from './auth/AuthForm.jsx';
 export { GoogleButton, GOOGLE_ENABLED } from './auth/GoogleButton.jsx';
+export { MicrosoftButton, MICROSOFT_ENABLED, microsoftIdToken } from './auth/MicrosoftButton.jsx';
 // Shared AI-spreadsheet grid (reusable in the Sheets product AND studio Spaces).
 export { SheetGrid, sheetToDelimited, sheetToAoA } from './sheet/SheetGrid.jsx';
 // Files, drawn the same wherever they appear. FileTypeIcon uses react-file-icon when it is

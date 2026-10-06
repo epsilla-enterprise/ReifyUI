@@ -108,6 +108,15 @@ export async function googleSignIn(credential) {
   return s;
 }
 
+// Exchange a Microsoft (Entra) id token for a session, as googleSignIn does
+// with Google's. The engine answers a refusal with a sentence to show as is:
+// a personal account, a disabled member, or sign-in not configured.
+export async function microsoftSignIn(credential) {
+  const s = toSession(await authPost('/v1/auth/microsoft', { credential, product: _cfg.product }));
+  setSession(s);
+  return s;
+}
+
 export async function requestPasswordReset(email) {
   await fetch(`${_cfg.engine}/v1/auth/request-password-reset`, {
     method: 'POST',

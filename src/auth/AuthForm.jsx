@@ -6,9 +6,10 @@
 // (configureAuth must have run at boot).
 import { useState } from 'react';
 import {
-  login, register, googleSignIn, requestPasswordReset, switchOrg,
+  login, register, googleSignIn, microsoftSignIn, requestPasswordReset, switchOrg,
 } from './client.js';
 import { GoogleButton, GOOGLE_ENABLED } from './GoogleButton.jsx';
+import { MicrosoftButton, MICROSOFT_ENABLED } from './MicrosoftButton.jsx';
 
 export function AuthForm({ onDone, subtitle, brand = null, productName = '' }) {
   const [mode, setMode] = useState('signin'); // signin | register | forgot
@@ -49,6 +50,18 @@ export function AuthForm({ onDone, subtitle, brand = null, productName = '' }) {
       }
     } catch (ex) {
       setErr(ex instanceof Error ? ex.message : `${mode === 'register' ? 'Sign up' : 'Sign in'} failed.`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onMicrosoft(credential) {
+    setErr('');
+    setBusy(true);
+    try {
+      await afterAuth(await microsoftSignIn(credential));
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : 'Microsoft sign in failed.');
     } finally {
       setBusy(false);
     }
@@ -172,7 +185,9 @@ export function AuthForm({ onDone, subtitle, brand = null, productName = '' }) {
             {busy ? 'Please wait...' : mode === 'register' ? 'Create account' : 'Sign in'}
           </button>
 
-          {GOOGLE_ENABLED && <GoogleButton onCredential={onGoogle} onError={setErr} />}
+          {(GOOGLE_ENABLED || MICROSOFT_ENABLED) && <div className="auth-or"><span>or</span></div>}
+          {GOOGLE_ENABLED && <GoogleButton onCredential={onGoogle} onError={setErr} divider={false} />}
+          {MICROSOFT_ENABLED && <MicrosoftButton onCredential={onMicrosoft} onError={setErr} disabled={busy} />}
 
           <p className="auth-switch">
             {mode === 'register' ? 'Already have an account?' : `New to ${productName || 'the product'}?`}{' '}
