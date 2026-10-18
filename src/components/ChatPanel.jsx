@@ -36,6 +36,8 @@ import { Chip } from './Chip.jsx';
 import { IcMic, IcPanelRight, IcPaperclip, IcSend } from './icons.jsx';
 import { withReasoning, withResult, withStep, withText } from '../state/blocks.js';
 import { bytesLabel } from '../format.js';
+import { newTurn, reduceTurn, turnFromMessage } from '../agent-chat/turn.js';
+import { AgentTurnView } from '../agent-chat/components.jsx';
 
 // Not props. Every one of the four copies used these exact numbers, so there is nothing to
 // configure — a knob nobody turns is a knob that only makes the call sites longer.
@@ -51,6 +53,18 @@ const PANEL_STATUS_LABELS = {
   cancelled: 'Stopped',
   incomplete: 'The turn hit its limit. Send a follow up to continue.',
 };
+
+/** Messages as turns: each answer with the message it answers. */
+function pairTurns(messages) {
+  const out = [];
+  let user = null;
+  for (const m of messages) {
+    if (m.role === 'user') { if (user) out.push({ user, asst: null }); user = m; }
+    else { out.push({ user, asst: m }); user = null; }
+  }
+  if (user) out.push({ user, asst: null });
+  return out;
+}
 
 export function ChatPanel(props) {
   const {
@@ -85,7 +99,16 @@ export function ChatPanel(props) {
     userExtras,
     toolLabels,
     classNames = {},
+    // view="agent" draws each turn with reifyui/agent-chat's AgentTurnView (the live line with the
+    // harness's mark, work folded per run of calls, every call openable) instead of ChatMessages.
+    // Needs styles/agent-chat.css too. `mark` (a node: the harness's logo) and `motion` (see
+    // motionFor) dress the live line; `agentLabels` overrides its words.
+    view = 'messages',
+    mark,
+    motion,
+    agentLabels,
   } = props;
+  const agentView = view === 'agent';
 
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
@@ -150,13 +173,16 @@ export function ChatPanel(props) {
   // ── running a turn ────────────────────────────────────────────────────────
   const deliver = useCallback(async (text, files = []) => {
     setBusy(true);
-    setMessages((m) => [...m, { role: 'assistant', blocks: [], status: 'running' }]);
+    // the turn's clock: every event folded in as it arrives (transports that pass onEvent), so the
+    // agent view can say when each call started and answered; never set for a replayed history
+    setMessages((m) => [...m, { role: 'assistant', blocks: [], status: 'running', clock: newTurn({ startedAt: Date.now() }) }]);
     try {
       const out = await api.current.runTurn({
         sessionId,
         text,
         attachments: files,
         handlers: {
+          onEvent: (ev) => updateLastAsst((a) => ({ ...a, clock: reduceTurn(a.clock || newTurn(), ev, Date.now()) })),
           onSession: (sid) => {
             // Arm the adopt guard only when the id is genuinely CHANGING: a session reporting
             // the id it already has is not a rename and must not suppress a later reload.
@@ -421,6 +447,16 @@ export function ChatPanel(props) {
         {histLoading ? <ChatMessagesSkeleton />
           : empty && externalBusy ? (busyState === undefined ? defaultBusyState : busyState)
           : empty ? emptyState
+          : agentView ? (
+            <div className="uic-chat-turns">
+              {pairTurns(messages).map(({ user, asst }, i) => (
+                <AgentTurnView key={i} mark={mark} motion={motion} labels={agentLabels} renderMarkdown={renderMarkdown}
+                  turn={asst ? turnFromMessage(asst, asst.clock || null, user ? { text: user.text, files: (user.files || []).map((n) => ({ name: n })) } : null)
+                    : turnFromMessage({ status: 'done', blocks: [] }, null, user ? { text: user.text, files: (user.files || []).map((n) => ({ name: n })) } : null)}
+                  userExtra={user ? userExtras?.(user, i) : undefined} />
+              ))}
+            </div>
+          )
           : (
             <ChatMessages
               messages={messages}

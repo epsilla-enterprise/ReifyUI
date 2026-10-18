@@ -190,7 +190,7 @@ function sessionIdOf(evt) {
  *  person's own sentence instead of our scaffolding.
  *
  *  handlers: the ReifyUI dispatcher's (onTextDelta, onReasoningDelta, onToolCall, onToolResult,
- *  onDone, onError) plus onSession(sessionId).
+ *  onDone, onError) plus onSession(sessionId) and onEvent(event), every event whole as it arrives.
  *
  *  Returns {ok, sessionId}, or {connecting:true} when the gateway is still coming up (503).
  */
@@ -236,6 +236,8 @@ export async function streamTurn({ sessionId, harnessId, input, instructions, ha
       try { evt = JSON.parse(data); } catch { return; }   // malformed frame
       const found = sessionIdOf(evt);
       if (found && found !== sid) { sid = found; handlers.onSession?.(found); }
+      // every event, whole, as it arrives (reifyui/agent-chat folds these into the turn's clock)
+      try { handlers.onEvent?.(evt); } catch { /* a view's clock must never break the stream */ }
       d.dispatch(evt);
     });
   } catch {

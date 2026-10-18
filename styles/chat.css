@@ -362,3 +362,8 @@ body.uic-resizing iframe { pointer-events: none; }
    buttons centered on the grown box, which is the common chat-input behavior. */
 .uic-composer-line { display: flex; align-items: center; gap: 8px; }
 .uic-composer-line textarea { flex: 1; min-width: 0; }
+
+/* ChatPanel view="agent": the turns of reifyui/agent-chat (its own styles: agent-chat.css) */
+.uic-chat-turns { display: flex; flex-direction: column; gap: 22px; }
+.uic-chat .uac-user-b { font-size: 13.5px; }
+.uic-chat .uac-md { font-size: 13.5px; }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0
+
+- `ChatPanel` takes `view="agent"` (with `mark`, `motion`, `agentLabels`): each turn drawn by
+  reifyui/agent-chat's `AgentTurnView`, the live line with the harness's mark, work folded per run of
+  calls. Needs `styles/agent-chat.css` beside `styles/chat.css`. Without the prop nothing changes.
+- `streamTurn` (reifyui/harness) calls `handlers.onEvent(event)` with every event, whole, as it
+  arrives; ChatPanel folds those into the turn's clock, so the agent view times its calls.
+
 ## 0.14.0
 
 New entry `reifyui/agent-chat` (styles: `reifyui/styles/agent-chat.css`). Nothing in the root entry

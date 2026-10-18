@@ -15,6 +15,9 @@ export interface ResponseHandlers {
   onCreated?(responseId: string): void;
   /** The server-side session id, for continuing this conversation on the next turn. */
   onSession?(sessionId: string): void;
+  /** Every event whole, as it arrives (streamTurn passes it; ChatPanel's agent view folds it into
+   *  the turn's clock). */
+  onEvent?(event: { type: string; [k: string]: unknown }): void;
   onReasoningDelta?(text: string): void;
   onTextDelta?(text: string): void;
   onToolCall?(name: string, args: string, callId: string): void;
@@ -300,6 +303,14 @@ export interface ChatPanelProps {
   toolLabels?: Record<string, string>;
   /** The panel's placement in YOUR layout. Everything it paints inside is the package's. */
   classNames?: { root?: string };
+  /** 'agent' draws each turn with reifyui/agent-chat's AgentTurnView (needs styles/agent-chat.css). */
+  view?: 'messages' | 'agent';
+  /** The agent view's live-line mark: the harness's logo, as a node. */
+  mark?: ReactNode;
+  /** The mark's motion (reifyui/agent-chat motionFor(base)). */
+  motion?: string;
+  /** Overrides for the agent view's words (reifyui/agent-chat DEFAULT_AGENT_LABELS). */
+  agentLabels?: Record<string, unknown>;
 }
 export const ChatPanel: ComponentType<ChatPanelProps>;
 

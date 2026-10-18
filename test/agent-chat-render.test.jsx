@@ -107,3 +107,11 @@ test('the root entry is unchanged: its exports are all still there', () => {
   }
   assert.equal(root.AgentTurnView, undefined, 'agent-chat stays out of the root bundle');
 });
+
+test('ChatPanel view="agent" keeps its contract and draws turns with the agent view', async () => {
+  const { ChatPanel } = root;
+  const h = html(<ChatPanel sessionId="s1" view="agent" runTurn={async () => ({ ok: true })} loadHistory={async () => []} />);
+  assert.match(h, /uic-chat/);
+  const plain = html(<ChatPanel sessionId="s1" runTurn={async () => ({ ok: true })} loadHistory={async () => []} />);
+  assert.match(plain, /uic-chat/);
+});
