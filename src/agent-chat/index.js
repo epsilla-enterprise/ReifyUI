@@ -24,6 +24,6 @@ export { AgentConversation, AgentTurnView, WorkGroup, StepRow, ThinkingRow, Todo
   StreamingText, TurnOutcome, UserBubble, AgentComposer, CopyButton, DiffBadge, LinesBlock, useStickToBottom,
   DEFAULT_AGENT_LABELS } from './components.jsx';
 // the files a turn made: cards in the conversation (FileCard), opened beside it (ArtifactPanel)
-export { ArtifactPanel } from './artifacts.jsx';
+export { ArtifactPanel, FileSwitcher, MidName, middleEllipsis } from './artifacts.jsx';
 export { FileCard } from '../components/FileCard.jsx';
 export { FilePreview } from '../components/FilePreview.jsx';

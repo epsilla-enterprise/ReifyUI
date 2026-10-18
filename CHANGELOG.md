@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0
+
+- `ArtifactPanel`'s header is ONE row: the file's kind, its name as a switcher, Copy, Download, Close.
+  The row of file tabs is gone. The name opens a dropdown of every file of the conversation (its
+  kind, its name truncated in the middle so the end that tells similar names apart shows, its size
+  and the turn that made it when known, grouped by folder), with a filter box past 8 files,
+  ↑ ↓ Home End Enter Escape, and the current file checked. On a phone the list is a sheet from the
+  bottom of the screen. Files take `path`, `size` and `turn`.
+- New: `FileSwitcher` (that dropdown), `MidName` (a name truncated in the middle at any width),
+  `middleEllipsis(name, max)`. `FilePreview` takes `nameSlot` (a control in the name's place).
+
 ## 0.16.1
 
 - `FileCard` takes `thumb`: an image file shows itself (a url the host can load) instead of its kind's icon.

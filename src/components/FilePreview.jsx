@@ -95,7 +95,7 @@ const defaultDownload = (url, name) => {
  * all. Async, so the caller can load its spreadsheet library lazily.
  */
 export function FilePreview({
-  file, onClose, fetchFile, officePdfUrl, renderMarkdown, parseWorkbook, onDownload, title, before,
+  file, onClose, fetchFile, officePdfUrl, renderMarkdown, parseWorkbook, onDownload, title, before, nameSlot,
 }) {
   const { url, name } = file || {};
   const [st, setSt] = useState({ kind: 'loading' });
@@ -175,7 +175,8 @@ export function FilePreview({
       {before}
       <header className="uic-fp-head">
         <span className="uic-fp-ic"><FileTypeIcon name={name} size={20} /></span>
-        <span className="uic-fp-name" title={name}>{name}</span>
+        {/* nameSlot: the host's own control in the name's place (a file switcher), in the same row */}
+        {nameSlot || <span className="uic-fp-name" title={name}>{name}</span>}
         {st.kind === 'html' && (
           <div className="uic-fp-seg" role="tablist" aria-label="Show the page or its source">
             {[['preview', 'Preview'], ['source', 'Source']].map(([id, label]) => (

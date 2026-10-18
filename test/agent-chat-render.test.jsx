@@ -123,20 +123,25 @@ test('tokens count the cache too, so harnesses read alike', () => {
   assert.match(text(html(<AgentTurnView turn={only} />)), /950 tokens/);
 });
 
-test('a produced file opens beside the conversation: switcher, preview, close', async () => {
-  const { ArtifactPanel, FileCard } = await import('../src/agent-chat/index.js');
-  const files = [{ key: 'a', name: 'README.md', url: '/f/a' }, { key: 'b', name: 'cats.json', url: '/f/b' }];
+test('a produced file opens beside the conversation: one header row, the name switches files', async () => {
+  const { ArtifactPanel, FileCard, middleEllipsis } = await import('../src/agent-chat/index.js');
+  const files = [{ key: 'a', name: 'README.md', url: '/f/a' }, { key: 'b', name: 'cats.json', url: '/f/b', size: 2048, turn: 2 }];
   const h = html(<ArtifactPanel files={files} active="b" onSelect={() => {}} onClose={() => {}} />);
-  assert.match(h, /uac-art-files/);
-  assert.match(h, /aria-current="true"[^>]*title="cats.json"|title="cats.json"[^>]*aria-current="true"|class="uac-art-file is-on"[^>]*title="cats.json"/);
-  assert.match(h, /aria-label="Close preview"/);
+  assert.doesNotMatch(h, /uac-art-files/, 'no row of tabs');
+  assert.match(h, /class="uic-fp-head"[\s\S]*uac-fs-btn[\s\S]*aria-label="Close preview"/, 'the switcher sits in the header row');
+  assert.match(h, /aria-haspopup="listbox"/);
+  assert.match(h, /class="uac-mid uac-fs-name"><span class="uac-mid-h">cats.json<\/span><\/span>/);
+  const long = html(<ArtifactPanel files={[{ key: 'x', name: 'epsilla-enterprise-subscription-license-store-v2.png', url: '/x' }, files[0]]} active="x" />);
+  assert.match(long, /<span class="uac-mid-t">e-store-v2.png<\/span>/, 'the end of a long name always shows');
   const one = html(<ArtifactPanel files={[files[0]]} overlay onClose={() => {}} />);
-  assert.doesNotMatch(one, /uac-art-files/, 'one file needs no switcher');
+  assert.doesNotMatch(one, /aria-haspopup/, 'one file: nothing to switch to');
   assert.match(one, /uac-art is-overlay/);
   assert.match(one, /uac-art-scrim/);
   const card = html(<FileCard name="cats.json" onPreview={() => {}} onDownload={() => {}} onCopy={() => {}} active />);
   assert.match(card, /aria-label="Copy cats.json"/);
   assert.match(card, /is-active/);
+  assert.equal(middleEllipsis('epsilla-enterprise-subscription-license-store-v2.png', 32), 'epsilla-enterpris…e-store-v2.png');
+  assert.equal(middleEllipsis('short.png', 32), 'short.png');
 });
 
 test('an image file card shows the image', async () => {

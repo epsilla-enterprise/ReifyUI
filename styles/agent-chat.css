@@ -283,13 +283,46 @@
       styles are reifyui/styles/file.css) ─────────────────────────────────────────────────── */
 .uac-art { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; background: var(--_surface); color: var(--_ink); }
 .uac-art > .uic-fp { flex: 1; min-height: 0; height: 100%; display: flex; flex-direction: column; }
-.uac-art-files { flex: none; display: flex; gap: 4px; padding: 8px 10px; overflow-x: auto; border-bottom: 1px solid var(--_line); scrollbar-width: thin; }
-.uac-art-file { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 220px; padding: 5px 10px; border: 1px solid transparent; border-radius: 8px;
-  background: none; font: inherit; font-size: 12.5px; color: var(--_mute); cursor: pointer; white-space: nowrap; }
-.uac-art-file span { overflow: hidden; text-overflow: ellipsis; }
-.uac-art-file:hover { color: var(--_ink); background: var(--_hover); }
-.uac-art-file.is-on { color: var(--_ink); background: var(--_surface-2); border-color: var(--_line); }
-.uac-art-file:focus-visible { outline: 2px solid var(--_brand); outline-offset: 1px; }
+.uac-art .uic-fp-head { position: relative; gap: 8px; }
+/* the file name in the header is a switcher: a dropdown of every file of the conversation */
+.uac-fs { position: relative; flex: 1 1 auto; min-width: 0; display: flex; }
+.uac-fs-btn { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; margin: 0; padding: 4px 6px 4px 4px; border: 0; border-radius: 8px;
+  background: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--_ink); cursor: pointer; text-align: left; }
+.uac-fs-btn:hover:not(:disabled), .uac-fs.is-open .uac-fs-btn { background: var(--_hover); }
+.uac-fs-btn:disabled { cursor: default; opacity: 1; }
+.uac-fs-btn:focus-visible { outline: 2px solid var(--_brand); outline-offset: 1px; }
+.uac-mid { display: inline-flex; min-width: 0; max-width: 100%; white-space: nowrap; }
+.uac-mid-h { min-width: 1ch; overflow: hidden; text-overflow: ellipsis; }
+.uac-mid-t { flex: none; }
+.uac-fs-name { min-width: 0; }
+.uac-fs-chev { flex: none; color: var(--_faint); transition: transform .15s; }
+.uac-fs.is-open .uac-fs-chev { transform: rotate(180deg); }
+.uac-fs-scrim { display: none; }
+.uac-fs-pop { position: absolute; top: calc(100% + 6px); left: -32px; z-index: 30; width: min(440px, calc(100vw - 24px)); max-height: min(60vh, 520px);
+  display: flex; flex-direction: column; background: var(--_surface); color: var(--_ink); border: 1px solid var(--_line); border-radius: 12px;
+  box-shadow: 0 16px 40px -14px rgba(15, 23, 42, .35); overflow: hidden; }
+.uac-fs-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--_faint); }
+.uac-fs-count { font-variant-numeric: tabular-nums; }
+.uac-fs-q { margin: 2px 10px 6px; padding: 7px 10px; border: 1px solid var(--_line); border-radius: 8px; background: var(--_surface-2); font: inherit;
+  font-size: 13px; color: var(--_ink); outline: 0; }
+.uac-fs-q:focus { border-color: color-mix(in srgb, var(--_brand) 45%, var(--_line)); }
+.uac-fs-list { flex: 1; min-height: 0; overflow: auto; padding: 2px 6px 8px; outline: 0; }
+.uac-fs-dir { padding: 8px 8px 3px; font-size: 11.5px; color: var(--_faint); font-family: var(--_mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uac-fs-opt { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--_ink-2); min-width: 0; }
+.uac-fs-opt.is-hi { background: var(--_hover); }
+.uac-fs-opt.is-on { color: var(--_ink); font-weight: 600; }
+.uac-fs-on { flex: 1; min-width: 0; }
+.uac-fs-meta { flex: none; font-size: 11.5px; font-weight: 400; color: var(--_faint); font-variant-numeric: tabular-nums; }
+.uac-fs-ck { flex: none; width: 16px; display: grid; place-items: center; color: var(--_brand); }
+.uac-fs-none { padding: 12px 10px; font-size: 13px; color: var(--_faint); }
+/* a phone: the list is a sheet from the bottom of the screen */
+@media (max-width: 560px) {
+  .uac-fs-scrim { display: block; position: fixed; inset: 0; z-index: calc(var(--uac-z-overlay, 60) + 1); background: var(--uic-scrim, rgba(17, 24, 39, .42)); }
+  .uac-fs-pop { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 75vh; z-index: calc(var(--uac-z-overlay, 60) + 2);
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .uac-fs-opt { padding: 11px 10px; font-size: 14px; }
+}
 .uac-art.is-overlay { position: fixed; top: 0; right: 0; bottom: 0; width: min(680px, 100vw); height: auto; z-index: var(--uac-z-overlay, 60);
   box-shadow: -16px 0 40px rgba(15, 23, 42, .22); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: uac-art-in .18s ease-out; }
@@ -320,5 +353,6 @@
   .uac-ring::before { border-color: var(--_brand); }
   .uac-composer, .uac-send { transition: none; }
   .uac-art.is-overlay { animation: none; }
+  .uac-fs-chev { transition: none; }
 }
 .uac-mark.is-still .uac-mark-in, .uac-mark.is-still .uac-mark-aura, .uac-mark.is-still i { animation: none; }

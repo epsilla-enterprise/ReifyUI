@@ -189,7 +189,15 @@ export interface AgentConversationProps extends MarkProps {
 }
 export function AgentConversation(props: AgentConversationProps): ReactElement;
 
-export interface ArtifactFile { key: string; name: string; url: string }
+export interface ArtifactFile {
+  key: string; name: string; url: string;
+  /** where it sits in the workspace (files are grouped by its folder) */
+  path?: string;
+  /** bytes, when known */
+  size?: number;
+  /** the turn that made it (1-based), when known */
+  turn?: number;
+}
 export interface ArtifactPanelProps {
   files: ArtifactFile[];
   /** the key of the file shown (default: the first) */
@@ -199,6 +207,8 @@ export interface ArtifactPanelProps {
   /** a drawer over the page from the right (a narrow screen) instead of a docked column */
   overlay?: boolean;
   label?: string;
+  /** the words for "made in turn n" in the file list (default "Turn n") */
+  turnLabel?: (n: number) => string;
   fetchFile?: (url: string) => Promise<Response>;
   renderMarkdown?: (text: string) => ReactNode;
   officePdfUrl?: (url: string) => string;
@@ -207,6 +217,13 @@ export interface ArtifactPanelProps {
   className?: string;
 }
 export function ArtifactPanel(props: ArtifactPanelProps): ReactElement | null;
+/** The preview header's file name as a dropdown of every file (ArtifactPanel uses it). */
+export function FileSwitcher(props: { files: Omit<ArtifactFile, 'url'>[]; current: string; onSelect?: (key: string) => void; label?: string;
+  turnLabel?: (n: number) => string }): ReactElement | null;
+/** "epsilla-enterprise-subscr…store-v2.png": the start and the end of a long name. */
+export function middleEllipsis(name: string, max?: number): string;
+/** A name truncated in the middle at whatever width it is given: the end always shows. */
+export function MidName(props: { name: string; className?: string }): ReactElement;
 export interface FileCardProps {
   name: string; origin?: string; bytes?: number;
   onPreview?: () => void; onDownload?: () => void;
@@ -223,4 +240,6 @@ export function FilePreview(props: {
   file: { url: string; name: string } | null; onClose?: () => void; fetchFile?: (url: string) => Promise<Response>;
   officePdfUrl?: (url: string) => string; renderMarkdown?: (text: string) => ReactNode;
   parseWorkbook?: ArtifactPanelProps['parseWorkbook']; onDownload?: (url: string, name: string) => void; title?: string; before?: ReactNode;
+  /** a control in the name's place in the header row (a file switcher) */
+  nameSlot?: ReactNode;
 }): ReactElement;
