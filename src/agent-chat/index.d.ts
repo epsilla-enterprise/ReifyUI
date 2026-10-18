@@ -214,6 +214,8 @@ export interface FileCardProps {
   onCopy?: () => Promise<void> | void;
   /** the file open in the preview */
   active?: boolean;
+  /** an image's own picture (a url the browser can load, e.g. an object url) instead of its kind's icon */
+  thumb?: string;
   className?: string;
 }
 export function FileCard(props: FileCardProps): ReactElement;

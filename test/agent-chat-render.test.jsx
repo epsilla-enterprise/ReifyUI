@@ -138,3 +138,10 @@ test('a produced file opens beside the conversation: switcher, preview, close', 
   assert.match(card, /aria-label="Copy cats.json"/);
   assert.match(card, /is-active/);
 });
+
+test('an image file card shows the image', async () => {
+  const { FileCard } = await import('../src/agent-chat/index.js');
+  const h = html(<FileCard name="hero.png" thumb="blob:x" onPreview={() => {}} />);
+  assert.match(h, /uic-filecard-thumb/);
+  assert.match(h, /src="blob:x"/);
+});

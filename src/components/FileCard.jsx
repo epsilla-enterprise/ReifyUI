@@ -30,7 +30,7 @@ export function bytesLabel(n) {
   return `${(n / 1048576).toFixed(1)} MB`;
 }
 
-export function FileCard({ name, origin = 'output', bytes, onPreview, onDownload, onCopy, active = false, className = '' }) {
+export function FileCard({ name, origin = 'output', bytes, onPreview, onDownload, onCopy, active = false, thumb, className = '' }) {
   // Copy: the host copies the file's text (it owns the read); the card says it did, briefly.
   const [copied, setCopied] = useState('');
   useEffect(() => { if (!copied) return undefined; const t = setTimeout(() => setCopied(''), 1600); return () => clearTimeout(t); }, [copied]);
@@ -45,7 +45,9 @@ export function FileCard({ name, origin = 'output', bytes, onPreview, onDownload
          tabIndex={open ? 0 : undefined}
          onKeyDown={open ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } } : undefined}
          title={name}>
-      <span className="uic-filecard-ic"><FileTypeIcon name={name} size={32} /></span>
+      {/* an image shows itself (the host hands a url it can read, e.g. an object url); else its kind */}
+      {thumb ? <span className="uic-filecard-thumb"><img src={thumb} alt="" /></span>
+        : <span className="uic-filecard-ic"><FileTypeIcon name={name} size={32} /></span>}
       <span className="uic-filecard-meta">
         <span className="uic-filecard-name">{name}</span>
         <span className="uic-filecard-sub">{subtitle(name, origin, bytes)}</span>

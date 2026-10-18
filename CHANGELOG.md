@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.1
+
+- `FileCard` takes `thumb`: an image file shows itself (a url the host can load) instead of its kind's icon.
+
 ## 0.16.0
 
 - agent-chat `ArtifactPanel`: the files a conversation made, opened beside it instead of printed into
