@@ -279,6 +279,23 @@
 .uac-att button:hover { color: var(--_ink); background: var(--_hover); }
 .uac-att.is-error { border-color: var(--uic-fail-line, #fecaca); color: var(--_fail); }
 
+/* ── the files a turn made, opened beside the conversation (ArtifactPanel; FilePreview's own
+      styles are reifyui/styles/file.css) ─────────────────────────────────────────────────── */
+.uac-art { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; background: var(--_surface); color: var(--_ink); }
+.uac-art > .uic-fp { flex: 1; min-height: 0; height: 100%; display: flex; flex-direction: column; }
+.uac-art-files { flex: none; display: flex; gap: 4px; padding: 8px 10px; overflow-x: auto; border-bottom: 1px solid var(--_line); scrollbar-width: thin; }
+.uac-art-file { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 220px; padding: 5px 10px; border: 1px solid transparent; border-radius: 8px;
+  background: none; font: inherit; font-size: 12.5px; color: var(--_mute); cursor: pointer; white-space: nowrap; }
+.uac-art-file span { overflow: hidden; text-overflow: ellipsis; }
+.uac-art-file:hover { color: var(--_ink); background: var(--_hover); }
+.uac-art-file.is-on { color: var(--_ink); background: var(--_surface-2); border-color: var(--_line); }
+.uac-art-file:focus-visible { outline: 2px solid var(--_brand); outline-offset: 1px; }
+.uac-art.is-overlay { position: fixed; top: 0; right: 0; bottom: 0; width: min(680px, 100vw); height: auto; z-index: var(--uac-z-overlay, 60);
+  box-shadow: -16px 0 40px rgba(15, 23, 42, .22); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: uac-art-in .18s ease-out; }
+.uac-art-scrim { position: fixed; inset: 0; z-index: calc(var(--uac-z-overlay, 60) - 1); background: var(--uic-scrim, rgba(17, 24, 39, .42)); }
+@keyframes uac-art-in { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+
 /* ── narrow ──────────────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 560px) {
   .uac-thread { gap: 24px; }
@@ -302,5 +319,6 @@
   .uac-shimmer { color: var(--_ink-2); background: none; }
   .uac-ring::before { border-color: var(--_brand); }
   .uac-composer, .uac-send { transition: none; }
+  .uac-art.is-overlay { animation: none; }
 }
 .uac-mark.is-still .uac-mark-in, .uac-mark.is-still .uac-mark-aura, .uac-mark.is-still i { animation: none; }

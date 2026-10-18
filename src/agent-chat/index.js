@@ -10,6 +10,7 @@
 //                 WorkingIndicator, WorkingMark, StreamingText, TurnOutcome, UserBubble,
 //                 AgentComposer, CopyButton, DiffBadge, LinesBlock, useStickToBottom,
 //                 DEFAULT_AGENT_LABELS
+//   the files     ArtifactPanel, FileCard, FilePreview (styles: also reifyui/styles/file.css)
 //
 // Styles: reifyui/styles/agent-chat.css. A separate entry so a host that renders a Button never
 // pulls in a conversation, and so nothing here changes what the root ChatMessages/ChatPanel do.
@@ -22,3 +23,7 @@ export { MARK_MOTIONS, MOTIONS, motionFor } from './marks.js';
 export { AgentConversation, AgentTurnView, WorkGroup, StepRow, ThinkingRow, TodoCard, WorkingIndicator, WorkingMark,
   StreamingText, TurnOutcome, UserBubble, AgentComposer, CopyButton, DiffBadge, LinesBlock, useStickToBottom,
   DEFAULT_AGENT_LABELS } from './components.jsx';
+// the files a turn made: cards in the conversation (FileCard), opened beside it (ArtifactPanel)
+export { ArtifactPanel } from './artifacts.jsx';
+export { FileCard } from '../components/FileCard.jsx';
+export { FilePreview } from '../components/FilePreview.jsx';

@@ -13,6 +13,8 @@
 .uic-filecard.is-clickable { cursor: pointer; }
 .uic-filecard.is-clickable:hover { border-color: var(--uic-brand-soft, #E1E9FF); }
 .uic-filecard:focus-visible { outline: 2px solid var(--uic-brand, #285AFF); outline-offset: 2px; }
+/* the file open in a preview beside the conversation */
+.uic-filecard.is-active { border-color: var(--uic-brand, #285AFF); box-shadow: 0 0 0 3px var(--uic-focus-ring, rgba(40, 90, 255, .14)); }
 .uic-filecard-ic { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
 .uic-filecard-meta { flex: 1 1 auto; min-width: 0; }
 .uic-filecard-name {

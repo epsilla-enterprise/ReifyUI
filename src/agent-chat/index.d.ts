@@ -188,3 +188,37 @@ export interface AgentConversationProps extends MarkProps {
   empty?: ReactNode;
 }
 export function AgentConversation(props: AgentConversationProps): ReactElement;
+
+export interface ArtifactFile { key: string; name: string; url: string }
+export interface ArtifactPanelProps {
+  files: ArtifactFile[];
+  /** the key of the file shown (default: the first) */
+  active?: string | null;
+  onSelect?: (key: string) => void;
+  onClose?: () => void;
+  /** a drawer over the page from the right (a narrow screen) instead of a docked column */
+  overlay?: boolean;
+  label?: string;
+  fetchFile?: (url: string) => Promise<Response>;
+  renderMarkdown?: (text: string) => ReactNode;
+  officePdfUrl?: (url: string) => string;
+  parseWorkbook?: (buf: ArrayBuffer) => Promise<{ name: string; filled: boolean; rows: unknown[][] }[]>;
+  onDownload?: (url: string, name: string) => void;
+  className?: string;
+}
+export function ArtifactPanel(props: ArtifactPanelProps): ReactElement | null;
+export interface FileCardProps {
+  name: string; origin?: string; bytes?: number;
+  onPreview?: () => void; onDownload?: () => void;
+  /** copy the file's text; resolve when copied, reject when it could not be */
+  onCopy?: () => Promise<void> | void;
+  /** the file open in the preview */
+  active?: boolean;
+  className?: string;
+}
+export function FileCard(props: FileCardProps): ReactElement;
+export function FilePreview(props: {
+  file: { url: string; name: string } | null; onClose?: () => void; fetchFile?: (url: string) => Promise<Response>;
+  officePdfUrl?: (url: string) => string; renderMarkdown?: (text: string) => ReactNode;
+  parseWorkbook?: ArtifactPanelProps['parseWorkbook']; onDownload?: (url: string, name: string) => void; title?: string; before?: ReactNode;
+}): ReactElement;

@@ -122,3 +122,19 @@ test('tokens count the cache too, so harnesses read alike', () => {
   const only = build([[1000, { type: 'response.completed', response: { status: 'completed', usage: { total_tokens: 950 } } }]]);
   assert.match(text(html(<AgentTurnView turn={only} />)), /950 tokens/);
 });
+
+test('a produced file opens beside the conversation: switcher, preview, close', async () => {
+  const { ArtifactPanel, FileCard } = await import('../src/agent-chat/index.js');
+  const files = [{ key: 'a', name: 'README.md', url: '/f/a' }, { key: 'b', name: 'cats.json', url: '/f/b' }];
+  const h = html(<ArtifactPanel files={files} active="b" onSelect={() => {}} onClose={() => {}} />);
+  assert.match(h, /uac-art-files/);
+  assert.match(h, /aria-current="true"[^>]*title="cats.json"|title="cats.json"[^>]*aria-current="true"|class="uac-art-file is-on"[^>]*title="cats.json"/);
+  assert.match(h, /aria-label="Close preview"/);
+  const one = html(<ArtifactPanel files={[files[0]]} overlay onClose={() => {}} />);
+  assert.doesNotMatch(one, /uac-art-files/, 'one file needs no switcher');
+  assert.match(one, /uac-art is-overlay/);
+  assert.match(one, /uac-art-scrim/);
+  const card = html(<FileCard name="cats.json" onPreview={() => {}} onDownload={() => {}} onCopy={() => {}} active />);
+  assert.match(card, /aria-label="Copy cats.json"/);
+  assert.match(card, /is-active/);
+});

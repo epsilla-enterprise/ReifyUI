@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.0
+
+- agent-chat `ArtifactPanel`: the files a conversation made, opened beside it instead of printed into
+  it. The file rendered by FilePreview (Markdown as a document, code highlighted, images, PDFs,
+  sheets), a switcher across every file, Copy, Download, Close. Docked it is a column the host
+  places; `overlay` makes it a drawer from the right with a scrim, Escape and focus return.
+  `FileCard` and `FilePreview` are also exported from reifyui/agent-chat.
+- `FileCard` takes `onCopy` (a Copy button; the host reads the text) and `active` (the file open in
+  the preview). `FilePreview` copies a file it read as text from its header, and takes `before`
+  (a node above its header).
+
 ## 0.15.2
 
 - agent-chat: a turn's token count adds every count its usage reports (fresh input, output, cache

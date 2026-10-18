@@ -95,7 +95,7 @@ const defaultDownload = (url, name) => {
  * all. Async, so the caller can load its spreadsheet library lazily.
  */
 export function FilePreview({
-  file, onClose, fetchFile, officePdfUrl, renderMarkdown, parseWorkbook, onDownload, title,
+  file, onClose, fetchFile, officePdfUrl, renderMarkdown, parseWorkbook, onDownload, title, before,
 }) {
   const { url, name } = file || {};
   const [st, setSt] = useState({ kind: 'loading' });
@@ -164,9 +164,15 @@ export function FilePreview({
   }, [url, name, fetchFile, officePdfUrl, parseWorkbook]);
 
   const download = () => (onDownload ? onDownload(url, name) : defaultDownload(url, name));
+  // a file read as text can be copied from the header (what was read is what is copied)
+  const [copied, setCopied] = useState('');
+  useEffect(() => { if (!copied) return undefined; const t = setTimeout(() => setCopied(''), 1600); return () => clearTimeout(t); }, [copied]);
+  const copyText = typeof st.text === 'string' ? st.text : null;
+  const copy = async () => { try { await navigator.clipboard.writeText(copyText || ''); setCopied('ok'); } catch { setCopied('no'); } };
 
   return (
     <aside className="uic-fp" aria-label={title || `Preview of ${name}`}>
+      {before}
       <header className="uic-fp-head">
         <span className="uic-fp-ic"><FileTypeIcon name={name} size={20} /></span>
         <span className="uic-fp-name" title={name}>{name}</span>
@@ -177,6 +183,14 @@ export function FilePreview({
                       className={'uic-fp-seg-btn' + (view === id ? ' is-on' : '')} onClick={() => setView(id)}>{label}</button>
             ))}
           </div>
+        )}
+        {copyText != null && (
+          <button type="button" className="uic-fp-btn uic-fp-copy" aria-label={copied === 'ok' ? 'Copied' : `Copy ${name}`}
+                  title={copied === 'ok' ? 'Copied' : copied === 'no' ? 'Could not copy' : 'Copy'} onClick={copy}>
+            {copied === 'ok'
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>}
+          </button>
         )}
         <button type="button" className="uic-fp-btn" aria-label={`Download ${name}`} title="Download"
                 onClick={download}><IcDownload /></button>
