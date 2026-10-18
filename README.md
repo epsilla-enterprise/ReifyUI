@@ -62,6 +62,7 @@ A production-grade surface for rendering and interacting with a live agent turn:
 | **Slides** (`reifyui/slides`) | `SlideView`, `SlideStage`, `EditorCanvas`, `Presentation`, `ElementView`, `themeVars` — render a JSON deck, edit it by direct manipulation, present it |
 | **Spreadsheet** | `SheetGrid`, `sheetToDelimited`, `sheetToAoA` — an AI-editable grid, extensible with your own column types |
 | **HarnessRouter** (`reifyui/harness`) | `configureKit`, `kitHarness`, `listSessions`, `readFile`, `writeFile`, `createResponse`, `streamTurn`, `turnsToMessages`, `fileToInputBlock` — the transport for apps served by a HarnessRouter console |
+| **Agent chat** (`reifyui/agent-chat`) | `AgentConversation`, `AgentTurnView`, `AgentComposer`, `WorkingIndicator`, `StepRow`, `WorkGroup`, `TodoCard`, `reduceTurn`, `turnFromMessage`, `describeTool`, `motionFor` — an agent's turn the way Claude Code shows it: one live line, work folded to a past-tense line per run of calls, every call one click from its input and output |
 | **Icons / tool meta** | `Ic*` icon set, `toolMeta`, `humanize`, `summarizeSteps` |
 | **Auth (optional)** | `configureAuth`, `login`, `AuthForm`, `GoogleButton` — a thin JWT client for products with a `/v1/auth`-style backend; wired to nothing by default |
 
@@ -155,6 +156,7 @@ import 'reifyui/styles/sheet.css';         // spreadsheet grid
 import 'reifyui/styles/panels.css';        // panel + panel grid, stat tile, result table
 import 'reifyui/styles/tasks.css';         // task list
 import 'reifyui/styles/dialog.css';        // alert / confirm / prompt dialogs
+import 'reifyui/styles/agent-chat.css';    // reifyui/agent-chat: the agent conversation
 ```
 
 Themes are CSS-variable files — load one, or switch at runtime by toggling which you apply. Override
@@ -191,6 +193,43 @@ import 'reifyui/styles/chat.css';
 `runTurn` resolves `{ connecting: true }` when the backend is not up yet: the panel then holds the
 message — with its files — and retries, instead of showing a turn that failed. Everything else it
 learns through `handlers`, which are the streaming dispatcher's own callbacks.
+
+## Agent chat
+
+`reifyui/agent-chat` draws an agent's turn the way Claude Code does. Prose in full; the work
+between two pieces of prose folded to one past-tense line ("Ran 3 commands, edited app.ts +12 −4"),
+which opens to every call, each of which opens to its whole input and output (copyable, long output
+behind "+N lines"); a plan card with the agent's latest todo list; and one live line at the bottom,
+`[mark] 1m 4s · Running npm test`, where the mark is the harness's own logo, moving.
+
+```jsx
+import { AgentConversation, AgentTurnView, AgentComposer, newTurn, reduceTurn, motionFor } from 'reifyui/agent-chat';
+import 'reifyui/styles/agent-chat.css';
+
+// The data: a Turn, folded from the Responses events as they arrive. `at` is the receive time;
+// pass null for a replayed event and no duration is ever invented from it.
+let turn = newTurn({ user: { text }, startedAt: Date.now() });
+onEvent((ev) => { turn = reduceTurn(turn, ev, Date.now()); render(); });
+
+<AgentConversation mode="page" running={turn.status === 'running'} followKey={turns.length}
+  composer={<AgentComposer value={v} onChange={setV} onSend={send} onStop={stop}
+                           running={turn.status === 'running'} onAttachFiles={attach} />}>
+  {turns.map((t) => (
+    <AgentTurnView key={t.id} turn={t} renderMarkdown={(s) => <Markdown>{s}</Markdown>}
+                   mark={<img src="/logos/claude.png" alt="" />} motion={motionFor('claude-code')} />
+  ))}
+</AgentConversation>
+```
+
+Every time shown is the difference between two observed moments: a call's duration needs its start
+and its result to have been seen, the turn's clock counts from the send, and tokens appear only from
+the response's own `usage`. `turnFromHistory` (a session's turns feed), `turnFromResponse` (a stored
+response) and `turnFromMessage` (a `ChatMessages` blocks message, optionally timed by a clock turn)
+build the same Turn from what a host already holds. `describeTool(name, args)` reads every harness's
+tool vocabulary (Claude Code, Codex, Gemini CLI, Hermes, Goose, OpenCode, OpenHands, pi, Kimi …)
+into a kind, a target, lines added and removed, and the plan. The package ships the motions, never
+the logos: pass your mark as a node and `motionFor(base)` names a motion, or none for three dots.
+All motion stops under `prefers-reduced-motion`.
 
 ## Slides
 

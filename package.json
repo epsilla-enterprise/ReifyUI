@@ -1,6 +1,6 @@
 {
   "name": "reifyui",
-  "version": "0.13.9",
+  "version": "0.14.0",
   "description": "The open-source rendering & interaction layer for agentic applications. Stream and render any agent's output as polished, application-native UI — model-agnostic, framework-agnostic, design-system-native. The foundation for building generative-UI and agent products.",
   "keywords": [
     "react",
@@ -71,6 +71,11 @@
       "import": "./dist/graph.js",
       "require": "./dist/graph.cjs"
     },
+    "./agent-chat": {
+      "types": "./dist/agent-chat.d.ts",
+      "import": "./dist/agent-chat.js",
+      "require": "./dist/agent-chat.cjs"
+    },
     "./styles/*": "./styles/*",
     "./package.json": "./package.json"
   },
@@ -96,6 +101,9 @@
       ],
       "graph": [
         "dist/graph.d.ts"
+      ],
+      "agent-chat": [
+        "dist/agent-chat.d.ts"
       ]
     }
   },
@@ -113,7 +121,8 @@
     "build": "tsup",
     "prepublishOnly": "npm run build",
     "clean": "rm -rf dist",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "node test/run.mjs"
   },
   "peerDependencies": {
     "echarts": "^5 || ^6",

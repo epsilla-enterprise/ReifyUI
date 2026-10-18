@@ -1,0 +1,306 @@
+/* reifyui/agent-chat: the agent conversation (AgentConversation, AgentTurnView, AgentComposer …).
+
+   Token contract. Every colour reads --uac-* first, then the package-wide --uic-* set, then a light
+   fallback, so the same file follows themes/light.css, themes/dark.css or a host's own tokens:
+     --uac-bg         the page colour behind the conversation (the dock's fade, the text's fade)
+     --uac-surface    cards, the composer, the call list            --uic-surface
+     --uac-surface-2  code and output wells                         --uic-surface-2
+     --uac-ink / --uac-ink-2 / --uac-mute / --uac-faint   text, strongest to quietest
+     --uac-line / --uac-line-soft                        hairlines
+     --uac-brand      the live mark's aura, links, focus             --uic-brand
+     --uac-user-bg    the person's bubble                            --uic-brand-faint
+     --uac-add / --uac-del   lines added and removed
+     --uac-fail       a failed call or turn                          --uic-fail-ink
+     --uac-mono       code                                           --uic-mono
+     --uac-font-md    prose size                                     --uic-font-md */
+
+:where(.uac-convo, .uac-turn, .uac-composer, .uac-working, .uac-group, .uac-step, .uac-todo, .uac-mark, .uac-outcome) {
+  --_bg: var(--uac-bg, var(--uic-bg, var(--uic-surface, #fff)));
+  --_surface: var(--uac-surface, var(--uic-surface, #fff));
+  --_surface-2: var(--uac-surface-2, var(--uic-surface-2, #f6f7f9));
+  --_ink: var(--uac-ink, var(--uic-ink, #15171c));
+  --_ink-2: var(--uac-ink-2, var(--uic-ink-2, #3a3d45));
+  --_mute: var(--uac-mute, var(--uic-mute, #5d6069));
+  --_faint: var(--uac-faint, var(--uic-mute-2, #8e9199));
+  --_line: var(--uac-line, var(--uic-line, #dfe1e7));
+  --_line-soft: var(--uac-line-soft, var(--uic-line-soft, #eff1f4));
+  --_brand: var(--uac-brand, var(--uic-brand, #285aff));
+  --_user-bg: var(--uac-user-bg, var(--uic-brand-faint, #eff3ff));
+  --_add: var(--uac-add, #1a7f37);
+  --_del: var(--uac-del, #cf222e);
+  --_fail: var(--uac-fail, var(--uic-fail-ink, #b91c1c));
+  --_warn: var(--uac-warn, var(--uic-incomplete-ink, #92400e));
+  --_mono: var(--uac-mono, var(--uic-mono, ui-monospace, SFMono-Regular, Menlo, monospace));
+  --_fs: var(--uac-font-md, var(--uic-font-md, 14.5px));
+  --_hover: var(--uic-hover-wash, rgba(0, 0, 0, .04));
+}
+
+.uac-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── the column ──────────────────────────────────────────────────────────────────────────────── */
+.uac-convo { display: flex; flex-direction: column; min-width: 0; color: var(--_ink); }
+.uac-convo.is-pane { height: 100%; min-height: 0; }
+.uac-convo.is-pane > .uac-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* page mode: the column reaches the bottom of what its scroller shows (measured into --uac-fill),
+   so the dock rests at the foot of the screen even when the conversation is short */
+.uac-convo.is-page { min-height: var(--uac-fill, 100dvh); }
+.uac-convo.is-page > .uac-scroll { flex: 1; }
+.uac-thread { display: flex; flex-direction: column; gap: 30px; padding-bottom: 8px; min-width: 0; }
+.uac-dock { position: sticky; bottom: 0; z-index: 5; padding: 18px 0 max(14px, env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, var(--_bg) 20px); }
+.uac-notice { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--_line); border-radius: 10px; background: var(--_surface-2);
+  font-size: 12.5px; color: var(--_ink-2); }
+.uac-jump { position: absolute; left: 50%; top: -26px; transform: translateX(-50%); width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--_surface); color: var(--_ink-2); border: 1px solid var(--_line);
+  box-shadow: 0 6px 18px -8px rgba(15, 23, 42, .35); cursor: pointer; }
+.uac-jump:hover { color: var(--_ink); }
+.uac-jump:focus-visible { outline: 2px solid var(--_brand); outline-offset: 2px; }
+
+/* ── a turn ──────────────────────────────────────────────────────────────────────────────────── */
+.uac-turn { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.uac-user { display: flex; justify-content: flex-end; min-width: 0; }
+.uac-user-b { max-width: min(82%, 580px); background: var(--_user-bg); color: var(--_ink); border-radius: 18px 18px 6px 18px;
+  padding: 10px 15px; font-size: var(--_fs); line-height: 1.55; min-width: 0; }
+.uac-user-t { white-space: pre-wrap; overflow-wrap: anywhere; }
+.uac-user-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.uac-user-files:last-child { margin-bottom: 0; }
+.uac-user-img { max-width: 220px; max-height: 160px; border-radius: 10px; display: block; object-fit: cover; }
+.uac-chip { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 8px; border-radius: 7px;
+  background: color-mix(in srgb, var(--_surface) 70%, transparent); border: 1px solid var(--_line); font-size: 12.5px; color: var(--_ink-2); }
+.uac-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uac-agent { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.uac-agent > * { max-width: 100%; }
+.uac-agent > .uac-md, .uac-agent > .uac-todo, .uac-agent > .uac-group.is-open, .uac-agent > .uac-outcome, .uac-agent > .uac-meta { align-self: stretch; }
+.uac-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12.5px; color: var(--_faint); }
+.uac-actions { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12.5px; color: var(--_faint); }
+
+/* ── prose ───────────────────────────────────────────────────────────────────────────────────── */
+.uac-md { font-size: var(--_fs); line-height: 1.66; color: var(--_ink); min-width: 0; overflow-wrap: anywhere; }
+.uac-md > :first-child { margin-top: 0; }
+.uac-md > :last-child { margin-bottom: 0; }
+.uac-md p { margin: 0 0 10px; }
+.uac-md h1, .uac-md h2, .uac-md h3, .uac-md h4 { margin: 18px 0 8px; line-height: 1.3; font-weight: 650; }
+.uac-md h1 { font-size: 1.3em; } .uac-md h2 { font-size: 1.18em; } .uac-md h3 { font-size: 1.06em; } .uac-md h4 { font-size: 1em; }
+.uac-md ul, .uac-md ol { margin: 0 0 10px; padding-left: 1.4em; }
+.uac-md li { margin: 3px 0; }
+.uac-md a { color: var(--_brand); text-decoration: underline; text-underline-offset: 2px; }
+.uac-md code { font-family: var(--_mono); font-size: .88em; padding: 1px 5px; border-radius: 5px; background: var(--_surface-2); border: 1px solid var(--_line-soft); }
+.uac-md pre { margin: 0 0 12px; padding: 12px 14px; border-radius: 10px; overflow-x: auto; background: var(--_surface-2); border: 1px solid var(--_line-soft); font-size: 12.5px; line-height: 1.55; }
+.uac-md pre code { padding: 0; border: 0; background: none; font-size: inherit; }
+.uac-md blockquote { margin: 0 0 10px; padding: 2px 0 2px 12px; border-left: 3px solid var(--_line); color: var(--_ink-2); }
+.uac-md table { border-collapse: collapse; margin: 0 0 12px; font-size: .94em; display: block; max-width: 100%; overflow-x: auto; }
+.uac-md th, .uac-md td { border: 1px solid var(--_line); padding: 5px 9px; text-align: left; vertical-align: top; }
+.uac-md hr { border: 0; border-top: 1px solid var(--_line); margin: 14px 0; }
+.uac-md img { max-width: 100%; border-radius: 8px; }
+.uac-plain { white-space: pre-wrap; }
+/* the newest words of streaming text fade in: a short gradient rides the end of the last line */
+.uac-md.is-streaming > :last-child:not(pre):not(ul):not(ol):not(table):not(div)::after,
+.uac-md.is-streaming > :is(ul, ol):last-child > li:last-child::after,
+.uac-md.is-streaming .uac-plain::after,
+.uac-md.is-streaming > div:last-child > :last-child:not(pre):not(ul):not(ol):not(table)::after {
+  content: ''; display: inline-block; width: 3.4em; height: 1.25em; margin-left: -3.4em; vertical-align: text-bottom;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--_bg) 0%, transparent), var(--_bg) 92%); pointer-events: none; }
+
+/* ── the live line and the mark ──────────────────────────────────────────────────────────────── */
+.uac-working { display: inline-flex; align-items: center; gap: 7px; min-height: 26px; max-width: 100%; font-size: 13px; color: var(--_mute); }
+.uac-working.is-button { background: none; border: 0; margin: 0; padding: 2px 8px 2px 0; font: inherit; font-size: 13px; color: var(--_mute);
+  cursor: pointer; border-radius: 7px; text-align: left; }
+.uac-working.is-button:hover .uac-verb:not(.uac-shimmer) { color: var(--_ink); }
+.uac-working.is-button:focus-visible, .uac-sum:focus-visible, .uac-step-h:focus-visible { outline: 2px solid var(--_brand); outline-offset: 1px; }
+.uac-elapsed { flex: none; font-variant-numeric: tabular-nums; color: var(--_faint); }
+.uac-sep { flex: none; color: var(--_faint); }
+.uac-verb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--_ink-2); }
+.uac-chev { flex: none; display: inline-flex; color: var(--_faint); }
+.uac-shimmer { color: transparent; background: linear-gradient(90deg, var(--_mute) 0%, var(--_mute) 38%, var(--_ink) 50%, var(--_mute) 62%, var(--_mute) 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text; animation: uac-shimmer 2.4s linear infinite; }
+@keyframes uac-shimmer { from { background-position: 100% 0; } to { background-position: -160% 0; } }
+
+.uac-mark { position: relative; flex: none; display: inline-grid; place-items: center; width: var(--uac-mark, 18px); height: var(--uac-mark, 18px); perspective: 80px; }
+.uac-mark-in { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 5px; overflow: hidden; transform-origin: 50% 50%; will-change: transform; }
+.uac-mark-in > img, .uac-mark-in > svg { display: block; width: 100%; height: 100%; object-fit: contain; }
+.uac-mark-aura { position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, color-mix(in srgb, var(--_brand) 34%, transparent) 0%, transparent 68%);
+  animation: uac-aura 2s ease-out infinite; }
+.uac-mark[data-motion="dots"] .uac-mark-aura { display: none; }
+@keyframes uac-aura { 0% { opacity: 0; transform: scale(.55); } 35% { opacity: .55; } 100% { opacity: 0; transform: scale(1.35); } }
+
+.uac-mark[data-motion="bloom"] .uac-mark-in { overflow: visible; animation: uac-bloom 2.6s cubic-bezier(.45, 0, .55, 1) infinite; }
+@keyframes uac-bloom { 0% { transform: rotate(0deg) scale(.8); } 50% { transform: rotate(30deg) scale(1.08); } 100% { transform: rotate(60deg) scale(.8); } }
+.uac-mark[data-motion="sheen"] .uac-mark-in { animation: uac-bob 2.2s ease-in-out infinite; }
+.uac-mark[data-motion="sheen"] .uac-mark-in::after { content: ''; position: absolute; inset: 0; transform: translateX(-130%);
+  background: linear-gradient(105deg, transparent 28%, rgba(255, 255, 255, .85) 50%, transparent 72%); animation: uac-sheen 2.2s ease-in-out infinite; }
+@keyframes uac-sheen { 0%, 15% { transform: translateX(-130%); } 65%, 100% { transform: translateX(130%); } }
+.uac-mark[data-motion="glint"] .uac-mark-in { animation: uac-glint 1.7s ease-in-out infinite; }
+@keyframes uac-glint { 0%, 100% { transform: scale(.86) rotate(0deg); filter: brightness(1); } 50% { transform: scale(1.06) rotate(8deg); filter: brightness(1.25) saturate(1.2); } }
+.uac-mark[data-motion="flutter"] .uac-mark-in { animation: uac-flutter .95s ease-in-out infinite; }
+@keyframes uac-flutter { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-2px) rotate(6deg); } }
+.uac-mark[data-motion="glide"] .uac-mark-in { overflow: visible; animation: uac-glide 2s ease-in-out infinite; }
+@keyframes uac-glide { 0%, 100% { transform: translate(0, 1px) rotate(-5deg); } 50% { transform: translate(1px, -2px) rotate(5deg); } }
+.uac-mark[data-motion="blink"] .uac-mark-in { animation: uac-blink 2s ease-in-out infinite; }
+@keyframes uac-blink { 0%, 42%, 58%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.12); } }
+.uac-mark[data-motion="flip"] .uac-mark-in { overflow: visible; animation: uac-flip 2.2s cubic-bezier(.6, 0, .4, 1) infinite; }
+@keyframes uac-flip { 0% { transform: rotateY(0deg); } 60%, 100% { transform: rotateY(360deg); } }
+.uac-mark[data-motion="swim"] .uac-mark-in { overflow: visible; animation: uac-swim 1.6s ease-in-out infinite; }
+@keyframes uac-swim { 0%, 100% { transform: translateX(-1px) rotate(-6deg); } 50% { transform: translateX(1.5px) rotate(5deg); } }
+.uac-mark[data-motion="spin"] .uac-mark-in { animation: uac-spin 2.4s linear infinite; }
+.uac-mark[data-motion="wave"] .uac-mark-in { overflow: visible; transform-origin: 50% 90%; animation: uac-wave 1.1s ease-in-out infinite; }
+@keyframes uac-wave { 0%, 100% { transform: rotate(-11deg); } 50% { transform: rotate(11deg); } }
+.uac-mark[data-motion="dash"] .uac-mark-in { overflow: visible; animation: uac-dash 1.1s ease-in-out infinite; }
+@keyframes uac-dash { 0%, 100% { transform: translateX(-1.5px) skewX(0deg); } 40% { transform: translateX(2px) skewX(-9deg); } }
+.uac-mark[data-motion="scuttle"] .uac-mark-in { overflow: visible; animation: uac-scuttle .7s ease-in-out infinite; }
+@keyframes uac-scuttle { 0%, 100% { transform: translateX(-1.5px); } 50% { transform: translateX(1.5px); } }
+.uac-mark[data-motion="equalize"] .uac-mark-in { transform-origin: 50% 100%; animation: uac-eq 1s ease-in-out infinite; }
+@keyframes uac-eq { 0%, 100% { transform: scaleY(.72); } 50% { transform: scaleY(1.06); } }
+.uac-mark[data-motion="bob"] .uac-mark-in { animation: uac-bob 1.4s ease-in-out infinite; }
+@keyframes uac-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+.uac-mark[data-motion="pulse"] .uac-mark-in { animation: uac-pulse 1.6s ease-in-out infinite; }
+@keyframes uac-pulse { 0%, 100% { transform: scale(.86); opacity: .72; } 50% { transform: scale(1.04); opacity: 1; } }
+@keyframes uac-spin { to { transform: rotate(360deg); } }
+
+/* no mark: three dots jostling round a small loop, each at its own size and phase */
+.uac-mark[data-motion="dots"] .uac-mark-in { overflow: visible; border-radius: 0; }
+.uac-mark[data-motion="dots"] i { position: absolute; left: 0; top: 0; border-radius: 50%; background: var(--_brand); animation: uac-dots 1.5s ease-in-out infinite; }
+.uac-mark[data-motion="dots"] i:nth-child(1) { width: 4px; height: 4px; }
+.uac-mark[data-motion="dots"] i:nth-child(2) { width: 5px; height: 5px; animation-delay: -.5s; }
+.uac-mark[data-motion="dots"] i:nth-child(3) { width: 3.5px; height: 3.5px; animation-delay: -1s; }
+@keyframes uac-dots {
+  0%, 100% { transform: translate(2px, 9px); }
+  33% { transform: translate(8px, 3px) scale(1.15); }
+  66% { transform: translate(13px, 10px) scale(.85); }
+}
+
+/* ── work: the summary line, the calls, one call ─────────────────────────────────────────────── */
+.uac-group { min-width: 0; max-width: 100%; }
+.uac-sum { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; background: none; border: 0; margin: 0; padding: 2px 8px 2px 0;
+  font: inherit; font-size: 13px; color: var(--_mute); cursor: pointer; border-radius: 7px; text-align: left; min-height: 26px; }
+.uac-sum:hover { color: var(--_ink); }
+.uac-sum:hover .uac-chev { color: var(--_ink-2); }
+.uac-sum-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uac-fail-n { flex: none; font-size: 11.5px; color: var(--_fail); }
+.uac-calls { margin-top: 6px; border: 1px solid var(--_line); border-radius: 11px; overflow: hidden; background: var(--_surface); }
+.uac-step { min-width: 0; }
+.uac-step + .uac-step { border-top: 1px solid var(--_line-soft); }
+.uac-step-h { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; margin: 0; padding: 7px 11px; background: none; border: 0;
+  font: inherit; font-size: 12.75px; color: var(--_ink-2); text-align: left; cursor: pointer; min-width: 0; }
+.uac-step-h:disabled { cursor: default; }
+.uac-step-h:hover:not(:disabled) { background: var(--_hover); }
+.uac-step-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uac-step-v { color: var(--_mute); }
+.uac-step-o { color: var(--_ink); }
+.uac-step-o.is-mono { font-family: var(--_mono); font-size: 12px; }
+.uac-step-n { flex: none; font-size: 12px; color: var(--_faint); }
+.uac-step-t .uac-step-n { margin-left: 6px; }
+.uac-step-time { flex: none; font-size: 12px; color: var(--_faint); font-variant-numeric: tabular-nums; }
+.uac-step.is-failed .uac-step-o, .uac-step.is-failed .uac-step-v { color: var(--_fail); }
+.uac-step-err { margin: -2px 0 0; padding: 0 12px 9px 36px; font-family: var(--_mono); font-size: 12px; color: var(--_fail); overflow-wrap: anywhere; }
+.uac-kind, .uac-x, .uac-ring, .uac-stopped { flex: none; width: 16px; height: 16px; display: grid; place-items: center; }
+.uac-kind { color: var(--_faint); }
+.uac-kind svg { width: 14px; height: 14px; }
+.uac-x { color: var(--_fail); }
+.uac-ring::before { content: ''; width: 11px; height: 11px; border-radius: 50%; border: 1.8px solid var(--_line); border-top-color: var(--_brand); animation: uac-spin .9s linear infinite; }
+.uac-stopped::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--_faint); }
+.uac-thought { padding: 0 14px 12px 36px; font-size: 12.75px; line-height: 1.6; color: var(--_mute); white-space: pre-wrap; overflow-wrap: anywhere; }
+.uac-group.is-live .uac-calls { margin-top: 4px; }
+
+.uac-diff { flex: none; display: inline-flex; gap: 3px; font-family: var(--_mono); font-size: 11px; line-height: 1; }
+.uac-add, .uac-del { padding: 3px 4px; border-radius: 4px; }
+.uac-add { color: var(--_add); background: color-mix(in srgb, var(--_add) 13%, transparent); }
+.uac-del { color: var(--_del); background: color-mix(in srgb, var(--_del) 11%, transparent); }
+
+.uac-detail { display: flex; flex-direction: column; gap: 10px; padding: 2px 12px 12px 36px; min-width: 0; }
+.uac-sec { min-width: 0; }
+.uac-sec > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--_faint); }
+.uac-sec.is-failed > header > span:first-child { color: var(--_fail); }
+.uac-copy { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; margin: -3px -6px -3px 0; background: none; border: 0; border-radius: 6px;
+  font: inherit; font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--_faint); cursor: pointer; }
+.uac-copy:hover { color: var(--_ink); background: var(--_hover); }
+.uac-copy.is-ok { color: var(--_add); }
+.uac-copy:focus-visible { outline: 2px solid var(--_brand); outline-offset: 1px; }
+.uac-lines pre { margin: 0; max-height: 320px; overflow: auto; padding: 8px 0; border-radius: 8px; background: var(--_surface-2); border: 1px solid var(--_line-soft);
+  font-family: var(--_mono); font-size: 12px; line-height: 1.55; color: var(--_ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.uac-ln { display: block; padding: 0 11px; min-height: 1.55em; }
+.uac-ln.is-add { color: var(--_add); background: color-mix(in srgb, var(--_add) 11%, transparent); }
+.uac-ln.is-del { color: var(--_del); background: color-mix(in srgb, var(--_del) 9%, transparent); }
+.uac-ln.is-cmd { color: var(--_ink); }
+.uac-ln.is-note, .uac-ln.is-path { color: var(--_faint); font-family: inherit; }
+.uac-lno { display: inline-block; min-width: 2.4em; margin-right: 8px; color: var(--_faint); text-align: right; user-select: none; }
+.uac-more { margin: 5px 0 0; padding: 2px 0; background: none; border: 0; font: inherit; font-size: 12px; color: var(--_brand); cursor: pointer; }
+.uac-more:hover { text-decoration: underline; }
+.uac-none { margin: 0; font-size: 12px; color: var(--_faint); }
+
+/* ── the plan ────────────────────────────────────────────────────────────────────────────────── */
+.uac-todo { display: flex; flex-direction: column; gap: 5px; padding: 10px 14px; border: 1px solid var(--_line); border-radius: 12px; background: var(--_surface); min-width: 0; }
+.uac-todo-i { display: flex; align-items: flex-start; gap: 9px; font-size: 13.25px; line-height: 1.45; color: var(--_ink); min-width: 0; }
+.uac-todo-t { min-width: 0; overflow-wrap: anywhere; }
+.uac-todo-m { flex: none; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; border: 1.5px dashed var(--_faint); display: grid; place-items: center; box-sizing: border-box; }
+.uac-todo-i.is-completed .uac-todo-m { border: 0; background: var(--_ink-2); color: var(--_surface); }
+.uac-todo-i.is-completed .uac-todo-t { color: var(--_mute); }
+.uac-todo-i.is-in_progress .uac-todo-m { border: 1.5px solid var(--_line); border-top-color: var(--_brand); animation: uac-spin 1s linear infinite; }
+.uac-todo-i.is-in_progress.is-held .uac-todo-m { animation: none; border-top-color: var(--_faint); }
+.uac-todo-i.is-in_progress .uac-todo-t { font-weight: 550; }
+.uac-todo-i.is-cancelled .uac-todo-t { color: var(--_faint); text-decoration: line-through; }
+
+/* ── how it ended ────────────────────────────────────────────────────────────────────────────── */
+.uac-outcome { font-size: 12.5px; color: var(--_faint); font-variant-numeric: tabular-nums; }
+.uac-outcome.is-failed > span { color: var(--_fail); }
+.uac-outcome.is-incomplete > span { color: var(--_warn); }
+.uac-outcome-why { margin: 6px 0 0; padding: 9px 12px; border-radius: 9px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--uic-fail-ink, #b91c1c); background: var(--uic-fail-bg, #fef2f2); border: 1px solid var(--uic-fail-line, #fecaca); }
+.uac-outcome.is-incomplete .uac-outcome-why { color: var(--uic-incomplete-ink, #92400e); background: var(--uic-incomplete-bg, #fffbeb); border-color: var(--uic-incomplete-line, #fde68a); }
+
+/* ── the composer ────────────────────────────────────────────────────────────────────────────── */
+.uac-composer { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 9px 14px; border: 1px solid var(--_line); border-radius: 20px;
+  background: var(--_surface); box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 28px -18px rgba(15, 23, 42, .28); transition: border-color .15s, box-shadow .15s; }
+.uac-composer:focus-within { border-color: color-mix(in srgb, var(--_brand) 40%, var(--_line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--_brand) 12%, transparent), 0 10px 28px -18px rgba(15, 23, 42, .28); }
+.uac-composer.is-dropping { border-color: var(--_brand); background: color-mix(in srgb, var(--_brand) 5%, var(--_surface)); }
+.uac-composer.is-disabled { opacity: .7; }
+.uac-composer textarea { display: block; width: 100%; min-height: 26px; margin: 0; padding: 4px 2px; border: 0; outline: 0; resize: none; background: transparent;
+  font: inherit; font-size: 15px; line-height: 1.5; color: var(--_ink); }
+.uac-composer textarea::placeholder { color: var(--_faint); }
+.uac-composer-row { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: nowrap; }
+.uac-composer-sp { flex: 1; min-width: 0; }
+.uac-composer-foot { font-size: 12px; color: var(--_faint); }
+.uac-icon-btn { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--_line); background: var(--_surface);
+  color: var(--_mute); cursor: pointer; }
+.uac-icon-btn:hover:not(:disabled) { color: var(--_ink); background: var(--_hover); }
+.uac-send { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--uac-send-bg, var(--_ink)); color: var(--uac-send-ink, var(--_surface)); transition: opacity .15s, transform .1s; }
+.uac-send:active:not(:disabled) { transform: scale(.94); }
+.uac-send:disabled { opacity: .3; cursor: not-allowed; }
+.uac-send.is-stop:disabled { opacity: .5; cursor: progress; }
+.uac-icon-btn:focus-visible, .uac-send:focus-visible { outline: 2px solid var(--_brand); outline-offset: 2px; }
+.uac-atts { display: flex; flex-wrap: wrap; gap: 6px; }
+.uac-att { display: inline-flex; align-items: center; gap: 6px; max-width: min(260px, 100%); padding: 4px 4px 4px 8px; border: 1px solid var(--_line); border-radius: 9px;
+  background: var(--_surface-2); font-size: 12.5px; color: var(--_ink-2); min-width: 0; }
+.uac-att img { width: 24px; height: 24px; border-radius: 5px; object-fit: cover; flex: none; }
+.uac-att-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uac-att button { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 6px; background: none; color: var(--_faint); cursor: pointer; }
+.uac-att button:hover { color: var(--_ink); background: var(--_hover); }
+.uac-att.is-error { border-color: var(--uic-fail-line, #fecaca); color: var(--_fail); }
+
+/* ── narrow ──────────────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .uac-thread { gap: 24px; }
+  .uac-user-b { max-width: 90%; }
+  .uac-detail { padding-left: 12px; }
+  .uac-step-err, .uac-thought { padding-left: 12px; }
+  .uac-step-h { padding: 7px 9px; }
+  .uac-lines pre { max-height: 260px; }
+  .uac-composer { border-radius: 18px; }
+  .uac-composer textarea { font-size: 16px; }   /* 16px keeps a phone from zooming into the field */
+}
+
+/* ── motion off ──────────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .uac-mark-in, .uac-mark-in::after, .uac-mark-aura, .uac-mark i, .uac-ring::before, .uac-todo-m, .uac-shimmer { animation: none !important; }
+  .uac-mark-aura { display: none; }
+  .uac-mark[data-motion="sheen"] .uac-mark-in::after { display: none; }
+  .uac-mark[data-motion="dots"] i:nth-child(1) { transform: translate(1px, 7px); }
+  .uac-mark[data-motion="dots"] i:nth-child(2) { transform: translate(7px, 6.5px); }
+  .uac-mark[data-motion="dots"] i:nth-child(3) { transform: translate(14px, 7.5px); }
+  .uac-shimmer { color: var(--_ink-2); background: none; }
+  .uac-ring::before { border-color: var(--_brand); }
+  .uac-composer, .uac-send { transition: none; }
+}
+.uac-mark.is-still .uac-mark-in, .uac-mark.is-still .uac-mark-aura, .uac-mark.is-still i { animation: none; }

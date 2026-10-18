@@ -6,3 +6,4 @@ npm-debug.log*
 .env
 .env.*
 .npmrc
+.test-out/

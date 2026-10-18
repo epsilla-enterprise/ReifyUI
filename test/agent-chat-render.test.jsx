@@ -1,0 +1,109 @@
+// What a reader sees, rendered to markup (react-dom/server).
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AgentTurnView, AgentComposer, AgentConversation, WorkingIndicator, newTurn, reduceTurn } from '../src/agent-chat/index.js';
+import * as root from '../src/index.js';
+
+const j = (o) => JSON.stringify(o);
+const callEvs = (oi, id, name, args) => [
+  { type: 'response.output_item.added', output_index: oi, item: { id: `f${oi}`, type: 'function_call', call_id: id, name, arguments: '' } },
+  { type: 'response.function_call_arguments.done', item_id: `f${oi}`, output_index: oi, arguments: args },
+];
+const out = (oi, id, output, extra = {}) => ({ type: 'response.output_item.added', output_index: oi, item: { type: 'function_call_output', call_id: id, output, ...extra } });
+function build(steps, start = 0) {
+  let t = newTurn({ user: { text: 'Fix the bug' }, startedAt: start });
+  t = reduceTurn(t, { type: 'response.created', response: { id: 'r1' } }, start + 1);
+  for (const [at, ev] of steps) for (const e of [].concat(ev)) t = reduceTurn(t, e, at);
+  return t;
+}
+const html = (el) => renderToStaticMarkup(el);
+const text = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+test('a running turn: the live line names the call and moves the harness mark', () => {
+  const t = build([[10, callEvs(0, 'c1', 'Bash', j({ command: 'npm test' }))]]);
+  const h = html(<AgentTurnView turn={t} mark={<img src="/logos/claude.png" alt="" />} motion="bloom" />);
+  assert.match(h, /data-motion="bloom"/);
+  assert.match(text(h), /Running npm test/);
+  assert.match(h, /aria-expanded="false"/, 'the live line opens to the calls so far');
+  assert.match(text(h), /Fix the bug/);
+});
+
+test('a running turn with nothing yet says Thinking, with dots when there is no mark', () => {
+  const h = html(<AgentTurnView turn={build([])} />);
+  assert.match(text(h), /Thinking/);
+  assert.match(h, /data-motion="dots"/);
+});
+
+test('finished work folds to one past-tense line with what it changed', () => {
+  const t = build([
+    [10, callEvs(0, 'a', 'Bash', j({ command: 'ls' }))], [20, out(1, 'a', 'x')],
+    [30, callEvs(2, 'b', 'Bash', j({ command: 'pwd' }))], [40, out(3, 'b', '/w')],
+    [50, callEvs(4, 'c', 'Edit', j({ file_path: 'src/app.ts', old_string: 'a', new_string: 'a\nb\nc' }))], [60, out(5, 'c', 'ok')],
+    [70, [{ type: 'response.output_item.added', output_index: 6, item: { id: 'm', type: 'message', content: [] } }, { type: 'response.output_text.delta', item_id: 'm', output_index: 6, delta: 'Fixed.' }]],
+    [64000, { type: 'response.completed', response: { status: 'completed', usage: { total_tokens: 12345 } } }],
+  ]);
+  const h = html(<AgentTurnView turn={t} />);
+  const s = text(h);
+  assert.match(s, /Ran 2 commands, edited a file/);
+  assert.match(s, /\+3/);
+  assert.match(s, /Worked for 1m 4s · 12\.3k tokens/);
+  assert.match(s, /Fixed\./);
+  assert.doesNotMatch(s, /Thinking/);
+});
+
+test('a failed call says so and shows its error line without a click', () => {
+  const t = build([[10, callEvs(0, 'a', 'Bash', j({ command: 'ls /nope' }))], [20, out(1, 'a', 'ls: /nope: No such file or directory', { is_error: true })],
+    [30, { type: 'response.completed', response: { status: 'completed' } }]]);
+  const s = text(html(<AgentTurnView turn={t} />));
+  assert.match(s, /1 failed/);
+});
+
+test('the plan renders once, as the agent last stated it', () => {
+  const t = build([[10, callEvs(0, 'a', 'TodoWrite', j({ todos: [{ content: 'Read the code', status: 'completed' }, { content: 'Fix it', status: 'in_progress' }] }))], [11, out(1, 'a', 'ok')]]);
+  const h = html(<AgentTurnView turn={t} />);
+  assert.equal((h.match(/class="uac-todo"/g) || []).length, 1);
+  assert.match(h, /is-completed/);
+  assert.match(h, /is-in_progress/);
+});
+
+test('stopped and failed turns end in plain words', () => {
+  const stopped = build([[3000, { type: 'response.failed', response: { status: 'cancelled' } }]]);
+  assert.match(text(html(<AgentTurnView turn={stopped} />)), /Stopped after 3s/);
+  const failed = build([[10, { type: 'error', message: 'The provider refused the request.' }], [12, { type: 'response.failed', response: { status: 'failed' } }]]);
+  const s = text(html(<AgentTurnView turn={failed} />));
+  assert.match(s, /Failed/);
+  assert.match(s, /The provider refused the request\./);
+});
+
+test('the composer: Stop while running, Send otherwise, attachments removable', () => {
+  const run = html(<AgentComposer value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} running />);
+  assert.match(run, /aria-label="Stop"/);
+  assert.doesNotMatch(run, /aria-label="Send"/);
+  const idle = html(<AgentComposer value="hi" onChange={() => {}} onSend={() => {}} attachments={[{ name: 'a.pdf' }]} onRemoveAttachment={() => {}} onAttachFiles={() => {}} />);
+  assert.match(idle, /aria-label="Send"/);
+  assert.match(idle, /aria-label="Remove a\.pdf"/);
+  assert.match(idle, /aria-label="Attach a file"/);
+  const empty = html(<AgentComposer value="  " onChange={() => {}} onSend={() => {}} />);
+  assert.match(empty, /<button[^>]*disabled=""[^>]*aria-label="Send"|aria-label="Send"[^>]*disabled=""/);
+});
+
+test('the conversation docks its composer', () => {
+  const h = html(<AgentConversation mode="page" composer={<div id="cmp" />}><p>turns</p></AgentConversation>);
+  assert.match(h, /class="uac-convo is-page"/);
+  assert.match(h, /<div class="uac-dock"><div id="cmp"><\/div><\/div>/);
+});
+
+test('the working line without a clock shows no time', () => {
+  const h = html(<WorkingIndicator label="Thinking" />);
+  assert.doesNotMatch(h, /uac-elapsed/);
+  const timed = html(<WorkingIndicator label="Thinking" start={Date.now() - 2500} />);
+  assert.match(text(timed), /2s · Thinking/);
+});
+
+test('the root entry is unchanged: its exports are all still there', () => {
+  for (const k of ['ChatMessages', 'ChatPanel', 'Composer', 'ToolGroup', 'ToolRow', 'pumpResponsesStream', 'turnsToMessages', 'withText', 'SheetGrid', 'DialogHost']) {
+    assert.ok(root[k], k);
+  }
+  assert.equal(root.AgentTurnView, undefined, 'agent-chat stays out of the root bundle');
+});
