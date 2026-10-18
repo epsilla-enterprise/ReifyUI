@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.2
+
+- agent-chat: a turn's token count adds every count its usage reports (fresh input, output, cache
+  read, cache written). Anthropic's input counts fresh tokens only, so the same work read a few
+  hundred tokens on Claude Code and thousands on Codex.
+
 ## 0.15.1
 
 - A call the tool reported as failed (`is_error: true` on its `function_call_output`) reads as failed

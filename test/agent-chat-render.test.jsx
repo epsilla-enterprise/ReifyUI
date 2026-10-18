@@ -115,3 +115,10 @@ test('ChatPanel view="agent" keeps its contract and draws turns with the agent v
   const plain = html(<ChatPanel sessionId="s1" runTurn={async () => ({ ok: true })} loadHistory={async () => []} />);
   assert.match(plain, /uic-chat/);
 });
+
+test('tokens count the cache too, so harnesses read alike', () => {
+  const t = build([[1000, { type: 'response.completed', response: { status: 'completed', usage: { input_tokens: 200, output_tokens: 70, total_tokens: 270, cache_read_tokens: 18000, cache_write_tokens: 1200 } } }]]);
+  assert.match(text(html(<AgentTurnView turn={t} />)), /19\.5k tokens/);
+  const only = build([[1000, { type: 'response.completed', response: { status: 'completed', usage: { total_tokens: 950 } } }]]);
+  assert.match(text(html(<AgentTurnView turn={only} />)), /950 tokens/);
+});

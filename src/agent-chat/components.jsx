@@ -458,7 +458,12 @@ export function TurnOutcome(props) {
   if (!turn || turn.status === 'running') return null;
   const ms = turn.startedAt != null && turn.endedAt != null ? turn.endedAt - turn.startedAt : turn.elapsedMs;
   const time = ms != null && ms >= 0 ? formatElapsed(ms) : '';
-  const tok = turn.usage && (turn.usage.total_tokens ?? ((turn.usage.input_tokens || 0) + (turn.usage.output_tokens || 0)));
+  // every token the turn's usage reports: fresh input, output, and the cache read and written. Some
+  // providers' total leaves the cache out (Anthropic's input counts fresh tokens only), so the
+  // same work would read 300 on one harness and 13k on another.
+  const u = turn.usage || null;
+  const parts = u ? ['input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens'].map((k) => Number(u[k]) || 0) : [];
+  const tok = u ? (parts.some(Boolean) ? parts.reduce((a, b) => a + b, 0) : (Number(u.total_tokens) || 0)) : 0;
   const tokens = tok ? labels.tokens(formatTokens(tok)) : '';
   if (turn.status === 'done') {
     if (!time && !tokens) return null;
