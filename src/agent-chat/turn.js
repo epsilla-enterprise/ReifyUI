@@ -388,7 +388,8 @@ export function turnFromMessage(msg, clock = null, user = null) {
         const c = s.callId ? byCall[s.callId] : null;
         const answered = s.result !== undefined;
         let st = c ? c.status : (answered ? 'done' : (status === 'running' ? 'running' : (status === 'done' ? 'done' : 'stopped')));
-        if (answered && st === 'running') st = 'done';
+        if (s.isError || s.is_error) st = 'failed';
+        if (answered && st === 'running') st = (s.isError || s.is_error) ? 'failed' : 'done';
         // a clock that missed the end (its stream dropped) must not keep a finished turn's call running
         if (st === 'running' && status !== 'running') st = status === 'done' ? 'done' : 'stopped';
         items.push({ kind: 'tool', id: s.callId || `call_${bi}_${si}`, itemId: null, name: s.name || 'tool', args: textOf(s.args ?? ''),

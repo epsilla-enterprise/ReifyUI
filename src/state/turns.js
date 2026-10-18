@@ -19,7 +19,9 @@ export function turnsToMessages(turns) {
   const out = [];
   for (const t of turns || []) {
     if (t.user) out.push({ role: 'user', text: t.user });
-    const steps = (t.tools || []).map((x) => ({ name: x.name, args: x.arguments, result: x.result }));
+    // the record names a result `output` (`result` is the older name); is_error marks a call the tool said failed
+    const steps = (t.tools || []).map((x) => ({ name: x.name, args: x.arguments, result: x.result ?? x.output,
+      ...(x.is_error ? { isError: true } : {}) }));
     const blocks = [];
     if (steps.length) blocks.push({ kind: 'tools', reasoning: '', steps });
     if (t.assistant) blocks.push({ kind: 'text', text: t.assistant });

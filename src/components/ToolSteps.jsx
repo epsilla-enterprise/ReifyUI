@@ -52,18 +52,19 @@ export function ToolGroup(props) {
 }
 
 export function ToolRow(props) {
-  const { step, requestLabel = 'Request', resultLabel = 'Result' } = props;
+  const { step, requestLabel = 'Request', resultLabel = 'Result', failedLabel = 'Failed' } = props;
   const [open, setOpen] = useState(false);
   const meta = toolMeta(step.name, step.args);
   const Icon = meta.Icon;
   const hasDetail = !!(step.args && step.args !== '{}') || step.result !== undefined;
   return (
-    <div className="wbx-act">
+    <div className={'wbx-act' + (step.isError ? ' is-failed' : '')}>
       <span className="wbx-act-ic-t"><Icon /></span>
       <div className="wbx-act-main">
         <button className={'wbx-act-row' + (open ? ' open' : '')} disabled={!hasDetail} onClick={() => setOpen((v) => !v)}>
           <span className="wbx-act-k">{meta.label}</span>
           {meta.chip && <span className="wbx-act-chip">{meta.chip}</span>}
+          {step.isError && <span className="wbx-act-failed">{failedLabel}</span>}
           {hasDetail && <span className="wbx-act-exp"><Chevron dir={open ? 'down' : 'right'} size={12} /></span>}
         </button>
         {open && (

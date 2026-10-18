@@ -191,7 +191,7 @@ export function ChatPanel(props) {
           },
           onReasoningDelta: (d) => updateLastAsst((a) => ({ ...a, blocks: withReasoning(a.blocks, d) })),
           onToolCall: (name, args, callId) => updateLastAsst((a) => ({ ...a, blocks: withStep(a.blocks, { name, args, callId }) })),
-          onToolResult: (callId, output) => updateLastAsst((a) => ({ ...a, blocks: withResult(a.blocks, callId, output) })),
+          onToolResult: (callId, output, isError) => updateLastAsst((a) => ({ ...a, blocks: withResult(a.blocks, callId, output, isError) })),
           onTextDelta: (d) => updateLastAsst((a) => ({ ...a, blocks: withText(a.blocks, d) })),
           onDone: (status) => updateLastAsst((a) => ({ ...a, status: status === 'completed' ? 'done' : status })),
           onError: () => updateLastAsst((a) => ({

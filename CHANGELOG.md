@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.1
+
+- A call the tool reported as failed (`is_error: true` on its `function_call_output`) reads as failed
+  wherever a call is shown: `onToolResult(callId, output, isError)`, `withResult(..., isError)`
+  (the step gets `isError: true`, absent otherwise), `turnsToMessages` (from the record's
+  `is_error`; it also reads the record's `output`, the result's current name), `ToolRow` (says
+  "Failed", `failedLabel` to change it) and the agent view (the row turns red with its error line).
+- agent-chat: a command Codex reports wrapped in a login shell (`/bin/bash -lc 'pwd'`) reads as the
+  command itself.
+
 ## 0.15.0
 
 - `ChatPanel` takes `view="agent"` (with `mark`, `motion`, `agentLabels`): each turn drawn by

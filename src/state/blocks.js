@@ -3,7 +3,7 @@
 // activity interleaves with prose in real time (never all tools hoisted to the top):
 //   { kind: 'text',  text }                          — streamed prose
 //   { kind: 'tools', reasoning, steps: ToolStep[] }  — a contiguous run of tool activity
-// ToolStep: { name, args, result?, callId? }
+// ToolStep: { name, args, result?, callId?, isError? }  (isError: the tool said it failed)
 
 export function withText(blocks, d) {
   const out = blocks.slice(); const last = out[out.length - 1];
@@ -26,9 +26,10 @@ export function withStep(blocks, step) {
   return out;
 }
 
-export function withResult(blocks, callId, output) {
+export function withResult(blocks, callId, output, isError = false) {
   return blocks.map((b) => (b.kind !== 'tools' ? b
-    : { ...b, steps: b.steps.map((t) => ((t.callId && t.callId === callId && t.result === undefined) ? { ...t, result: output } : t)) }));
+    : { ...b, steps: b.steps.map((t) => ((t.callId && t.callId === callId && t.result === undefined)
+      ? { ...t, result: output, ...(isError ? { isError: true } : {}) } : t)) }));
 }
 
 /** All prose of an assistant message joined (for copy-to-clipboard etc.). */

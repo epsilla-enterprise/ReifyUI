@@ -15,7 +15,8 @@
 //   onToolCall(name, args, callId)     response.function_call_arguments.done (name + call_id
 //                                      captured from the matching output_item.added, keyed by
 //                                      output_index — the same pairing HR ships)
-//   onToolResult(callId, output)       function_call_output items
+//   onToolResult(callId, output, isError)  function_call_output items; isError is true only when
+//                                      the item says the tool failed (`is_error: true`)
 //   onTextDelta(text)                  response.output_text.delta
 //   onFile({container_id,file_id,filename})  container_file_citation annotations
 //   onDone(status, response)           response.completed / .incomplete / .failed (a failed
@@ -47,7 +48,7 @@ export function createResponsesDispatcher(h) {
           if (item.type === 'function_call') {
             fnByIdx[ev.output_index] = { name: item.name || 'tool', callId: item.call_id || '' };
           } else if (item.type === 'function_call_output') {
-            h.onToolResult?.(item.call_id || '', String(item.output ?? ''));
+            h.onToolResult?.(item.call_id || '', String(item.output ?? ''), item.is_error === true);
           }
           break;
         }

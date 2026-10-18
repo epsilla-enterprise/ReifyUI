@@ -140,6 +140,9 @@
 .wbx-act-main { min-width: 0; flex: 1; }
 .wbx-act-row { display: flex; align-items: center; gap: 8px; min-height: 22px; width: 100%; text-align: left; background: transparent; border: none; cursor: pointer; padding: 0; }
 .wbx-act-row:disabled { cursor: default; }
+/* a call the tool reported as failed: said in words, not only in colour */
+.wbx-act-failed { font-size: 11.5px; font-weight: 600; color: var(--uic-fail-ink, #b91c1c); }
+.wbx-act.is-failed .wbx-act-ic-t { color: var(--uic-fail-ink, #b91c1c); }
 .wbx-act-k { font-size: 13.5px; font-weight: 600; color: var(--uic-ink, #111317); }
 .wbx-act-chip { font-size: 11.5px; font-family: var(--uic-mono, ui-monospace, Menlo, monospace); color: var(--uic-ink-2, #3A3D45);
   background: var(--uic-brand-faint, #EFF3FF); border-radius: 6px; padding: 1px 7px; }

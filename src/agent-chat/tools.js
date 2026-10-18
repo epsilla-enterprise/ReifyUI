@@ -91,7 +91,11 @@ export function commandText(a) {
     if (c.length >= 3 && /(^|\/)(ba|z)?sh$/.test(String(c[0])) && /^-\w*c$/.test(String(c[1]))) c = c.slice(2).join(' ');
     else c = c.join(' ');
   }
-  return str(c).trim();
+  let t = str(c).trim();
+  // "/bin/bash -lc 'cat x'" (Codex reports its commands wrapped in a login shell): the inner command
+  const m = t.match(/^(?:\/(?:usr\/)?bin\/)?(?:ba|z)?sh\s+-\w*c\s+(['"])([\s\S]*)\1$/);
+  if (m) t = m[2].replace(m[1] === "'" ? /'\\''/g : /\\"/g, m[1]);
+  return t;
 }
 
 export function lineCount(s) {

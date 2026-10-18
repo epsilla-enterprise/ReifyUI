@@ -21,7 +21,8 @@ export interface ResponseHandlers {
   onReasoningDelta?(text: string): void;
   onTextDelta?(text: string): void;
   onToolCall?(name: string, args: string, callId: string): void;
-  onToolResult?(callId: string, output: string): void;
+  /** isError: the result item said the tool failed (`is_error: true`). */
+  onToolResult?(callId: string, output: string, isError?: boolean): void;
   onFile?(file: { container_id: string; file_id: string; filename: string }): void;
   /** Terminal event. `status` distinguishes completed / incomplete / failed (incl. cancels). */
   onDone?(status: string, response: unknown): void;
