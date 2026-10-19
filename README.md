@@ -227,7 +227,7 @@ the response's own `usage`. `turnFromHistory` (a session's turns feed), `turnFro
 response) and `turnFromMessage` (a `ChatMessages` blocks message, optionally timed by a clock turn)
 build the same Turn from what a host already holds. `describeTool(name, args)` reads every harness's
 tool vocabulary (Claude Code, Codex, Gemini CLI, Hermes, Goose, OpenCode, OpenHands, pi, Kimi …)
-into a kind, a target, lines added and removed, and the plan. The package ships the motions, never
+into a kind, a target, lines added and removed, and the plan; a browser call reads as what it did ("Clicked the “About” link"). `openStep(item, d)` lets the host open a call in a place of its own (a browser step opens the live browser beside the conversation) instead of unfolding it. The package ships the motions, never
 the logos: pass your mark as a node and `motionFor(base)` names a motion, or none for three dots.
 All motion stops under `prefers-reduced-motion`.
 

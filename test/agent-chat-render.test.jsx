@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AgentTurnView, AgentComposer, AgentConversation, WorkingIndicator, newTurn, reduceTurn } from '../src/agent-chat/index.js';
+import { AgentTurnView, AgentComposer, AgentConversation, WorkingIndicator, WorkGroup, newTurn, reduceTurn } from '../src/agent-chat/index.js';
 import * as root from '../src/index.js';
 
 const j = (o) => JSON.stringify(o);
@@ -149,4 +149,32 @@ test('an image file card shows the image', async () => {
   const h = html(<FileCard name="hero.png" thumb="blob:x" onPreview={() => {}} />);
   assert.match(h, /uic-filecard-thumb/);
   assert.match(h, /src="blob:x"/);
+});
+
+test('a call the host opens in its own place: no unfolding, its row marked while it shows', () => {
+  const t = build([
+    [10, callEvs(0, 'b1', 'browser_navigate', j({ url: 'https://duckduckgo.com/' }))],
+    [20, out(1, 'b1', 'Opened https://duckduckgo.com/ (DuckDuckGo)\n\ne1 link "About"')],
+    [30, callEvs(2, 'b2', 'browser_click', j({ ref: 'e1' }))],
+    [40, out(3, 'b2', 'Clicked.')],
+    [50, callEvs(4, 'c1', 'Bash', j({ command: 'ls' }))],
+  ]);
+  const seen = [];
+  const openStep = (item, d) => { seen.push([item.id, d.kind]); return d.kind === 'browser' ? () => {} : null; };
+  const tools = t.items.filter((x) => x.kind === 'tool');
+  const h = html(<WorkGroup items={tools} defaultOpen elements={{ b2: { role: 'link', name: 'About' } }} openStep={openStep} activeStep="b2" />);
+  assert.deepEqual(seen.map((s) => s[0]), ['b1', 'b2', 'c1']);
+  assert.match(text(h), /Opened duckduckgo\.com/);
+  assert.match(text(h), /Clicked the “About” link/);
+  // the browser rows open (no aria-expanded), the active one is current; the command still unfolds
+  const rows = h.split('class="uac-step ').slice(1);
+  assert.match(rows[0], /is-opens/);
+  assert.doesNotMatch(rows[0].split('</button>')[0], /aria-expanded/);
+  assert.match(rows[1], /is-active/);
+  assert.match(rows[1], /aria-current="true"/);
+  assert.doesNotMatch(rows[2], /is-opens/);
+  assert.match(rows[2], /aria-expanded="false"/);
+  // the turn view passes both through, and reads the element from the snapshot itself
+  const v = html(<AgentTurnView turn={t} openStep={openStep} activeStep="b2" />);
+  assert.match(text(v), /Running ls/);
 });

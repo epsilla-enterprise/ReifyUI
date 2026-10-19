@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.18.0
+
+- A browser call names what it did: "Opened duckduckgo.com", "Clicked the “About” link", "Typed into
+  a field", "Took a screenshot", "Read the page", "Pressed Enter", "Scrolled down", "Went back a page",
+  live as "Opening …", "Clicking …". Never "Used the browser a tool". One table reads a browser plug's
+  tools (`browser_click`), Playwright MCP's (`browser_take_screenshot`), a connected server's copy of
+  either (`mcp__plugs__browser_click`, `plugs.browser_click`, which used to read as a connected tool)
+  and a single `browser` or `computer` tool with an `action`. What was typed is never in the line.
+- The element a click or a typing acted on is read from the page snapshot before it in the same turn
+  (`e12 link "About"`, `- link "About" [ref=e12]`): new `browserElements(items)`, and `describeTool`
+  takes `{ element }`. New `browserActOf(name)`.
+- `AgentTurnView`, `WorkGroup` and `StepRow` take `openStep(item, d)`: a call the host shows in a
+  place of its own (a browser step opens the browser beside the conversation) answers a handler, and
+  its row opens there on a click instead of unfolding, the way a file card opens its file.
+  `activeStep` marks the row of the call the host is showing.
+- A call with nothing to name reads whole: "Searched the web", not "Searched the web for a tool".
+
 ## 0.17.0
 
 - `ArtifactPanel`'s header is ONE row: the file's kind, its name as a switcher, Copy, Download, Close.

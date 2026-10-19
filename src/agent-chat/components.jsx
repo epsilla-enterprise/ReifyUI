@@ -7,7 +7,7 @@
 // Components take one `props` object and destructure inside, so TypeScript hosts do not infer
 // every optional slot as required (the convention of the rest of the package).
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { describeTool, toolLine, summarizeCalls, resultNote, parseToolArgs } from './tools.js';
+import { describeTool, toolLine, summarizeCalls, resultNote, parseToolArgs, browserElements } from './tools.js';
 import { liveState, segments, latestPlan } from './turn.js';
 import { formatElapsed, formatDuration, formatTokens, useElapsed } from './time.js';
 import { Chevron, IcTerminal, IcDoc, IcScroll, IcSearch, IcGlobe, IcSpawn, IcList, IcSkill, IcPlug, IcTool, IcThink,
@@ -246,10 +246,15 @@ function StepDetail(props) {
   );
 }
 
-/** One call: what it did, to what, how it went; click for its whole input and output. */
+/**
+ * One call: what it did, to what, how it went; click for its whole input and output. A call the host
+ * shows in a place of its own (`openStep` answers a handler for it: a browser step opens the browser
+ * beside the conversation) opens there on a click instead, the way a file card opens its file.
+ */
 export function StepRow(props) {
-  const { item, labels = DEFAULT_AGENT_LABELS, defaultOpen = false } = props;
-  const d = useMemo(() => describeTool(item.name, item.args), [item.name, item.args]);
+  const { item, labels = DEFAULT_AGENT_LABELS, defaultOpen = false, element = null, openStep, active = false } = props;
+  const d = useMemo(() => describeTool(item.name, item.args, { element }), [item.name, item.args, element]);
+  const opener = openStep ? openStep(item, d) || null : null;
   const [open, setOpen] = useState(defaultOpen);
   const uid = useRef(`uac-s-${Math.random().toString(36).slice(2, 9)}`).current;
   const running = item.status === 'running';
@@ -260,11 +265,12 @@ export function StepRow(props) {
   // split "Ran npm test" into the verb (quiet) and the target (ink), when the line is verb + target
   const hasTarget = d.target && line === `${verb} ${d.target}`;
   const note = !running && item.status !== 'failed' ? resultNote(d.kind, item.output) : '';
-  const hasDetail = !!(item.args && item.args !== '{}' && item.args !== '""') || item.output !== undefined;
+  const hasDetail = !opener && (!!(item.args && item.args !== '{}' && item.args !== '""') || item.output !== undefined);
   return (
-    <div className={cls('uac-step', `is-${item.status}`)} data-kind={d.kind}>
+    <div className={cls('uac-step', `is-${item.status}`, opener && 'is-opens', opener && active && 'is-active')} data-kind={d.kind}>
       <button type="button" className="uac-step-h" aria-expanded={hasDetail ? open : undefined} aria-controls={hasDetail ? uid : undefined}
-        disabled={!hasDetail} onClick={() => setOpen((v) => !v)} title={d.targetFull || undefined}>
+        aria-current={opener && active ? 'true' : undefined}
+        disabled={!opener && !hasDetail} onClick={opener || (() => setOpen((v) => !v))} title={d.targetFull || undefined}>
         <StatusGlyph status={item.status} kind={d.kind} />
         <span className="uac-step-t">
           {hasTarget ? (<><span className="uac-step-v">{verb}</span> <span className={cls('uac-step-o', d.mono && 'is-mono')}>{d.target}</span></>)
@@ -276,7 +282,7 @@ export function StepRow(props) {
         {item.status === 'stopped' ? <span className="uac-step-n">{labels.stoppedCall}</span> : null}
         {running && runMs != null ? <span className="uac-step-time">{formatElapsed(runMs)}</span>
           : tookMs != null && tookMs >= 1000 ? <span className="uac-step-time">{formatDuration(tookMs)}</span> : null}
-        {hasDetail ? <span className="uac-chev" aria-hidden="true"><Chevron dir={open ? 'down' : 'right'} size={12} /></span> : null}
+        {hasDetail || opener ? <span className="uac-chev" aria-hidden="true"><Chevron dir={open && !opener ? 'down' : 'right'} size={12} /></span> : null}
       </button>
       {item.status === 'failed' && item.output ? <div className="uac-step-err">{firstLine(item.output)}</div> : null}
       {open && hasDetail ? <StepDetail item={item} d={d} labels={labels} id={uid} /> : null}
@@ -322,14 +328,15 @@ function sumDiff(tools) {
  * live line, `[mark] 1m 4s · Running npm test`, and opens to the calls so far.
  */
 export function WorkGroup(props) {
-  const { items, live = false, liveLabel, start = null, mark, motion, labels = DEFAULT_AGENT_LABELS, defaultOpen = false } = props;
+  const { items, live = false, liveLabel, start = null, mark, motion, labels = DEFAULT_AGENT_LABELS, defaultOpen = false,
+    elements = null, openStep, activeStep = null } = props;
   const [open, setOpen] = useState(defaultOpen);
   const uid = useRef(`uac-g-${Math.random().toString(36).slice(2, 9)}`).current;
   const tools = items.filter((x) => x.kind === 'tool');
   const thoughts = items.filter((x) => x.kind === 'thinking');
   const failed = tools.filter((x) => x.status === 'failed').length;
   let summary = '';
-  if (tools.length) summary = summarizeCalls(tools);
+  if (tools.length) summary = summarizeCalls(elements ? tools.map((t) => ({ name: t.name, args: t.args, element: elements[t.id] })) : tools);
   else if (thoughts.length) {
     const t = thoughts[0];
     const ms = t.startedAt != null && t.endedAt != null ? t.endedAt - t.startedAt : null;
@@ -341,7 +348,8 @@ export function WorkGroup(props) {
   const body = open ? (
     <div className="uac-calls" id={uid}>
       {items.map((it) => (it.kind === 'tool'
-        ? <StepRow key={it.id} item={it} labels={labels} />
+        ? <StepRow key={it.id} item={it} labels={labels} element={elements ? elements[it.id] || null : null}
+            openStep={openStep} active={activeStep != null && activeStep === it.id} />
         : <ThinkingRow key={it.id} item={it} labels={labels} />))}
     </div>
   ) : null;
@@ -496,9 +504,12 @@ export function TurnOutcome(props) {
 export function AgentTurnView(props) {
   const {
     turn, renderMarkdown, mark, motion, labels: labelsIn, showUser = true, renderUserFile, userExtra,
-    meta, renderFiles, actions, describeIncomplete, liveStart,
+    meta, renderFiles, actions, describeIncomplete, liveStart, openStep, activeStep = null,
   } = props;
   const labels = useMemo(() => ({ ...DEFAULT_AGENT_LABELS, ...(labelsIn || {}) }), [labelsIn]);
+  // what each browser call acted on, read from the page snapshots before it in this turn
+  const items = turn ? turn.items : null;
+  const elements = useMemo(() => browserElements(items), [items]);
   if (!turn) return null;
   const running = turn.status === 'running';
   const segs = segments(turn);
@@ -509,7 +520,7 @@ export function AgentTurnView(props) {
   const liveWork = running && lastSeg && lastSeg.type === 'work';
   let liveLabel = labels.thinking;
   if (now) {
-    if (now.phase === 'tool' && now.tool) liveLabel = toolLine(describeTool(now.tool.name, now.tool.args), 'running');
+    if (now.phase === 'tool' && now.tool) liveLabel = toolLine(describeTool(now.tool.name, now.tool.args, { element: elements[now.tool.id] }), 'running');
     else if (now.phase === 'writing') liveLabel = labels.writing;
     else if (now.phase === 'starting') liveLabel = labels.starting;
   }
@@ -526,7 +537,8 @@ export function AgentTurnView(props) {
             return (
               <React.Fragment key={`w${i}`}>
                 {plan ? <TodoCard todos={plan} labels={labels} running /> : null}
-                <WorkGroup items={s.items} live liveLabel={liveLabel} start={start} mark={mark} motion={motion} labels={labels} />
+                <WorkGroup items={s.items} live liveLabel={liveLabel} start={start} mark={mark} motion={motion} labels={labels}
+                  elements={elements} openStep={openStep} activeStep={activeStep} />
               </React.Fragment>
             );
           }
@@ -534,7 +546,8 @@ export function AgentTurnView(props) {
             return <StreamingText key={s.item.id || `t${i}`} text={s.item.text} render={renderMarkdown}
               active={running && i === lastTextIdx && i === segs.length - 1} />;
           }
-          return <WorkGroup key={`w${i}-${s.items[0] && s.items[0].id}`} items={s.items} labels={labels} />;
+          return <WorkGroup key={`w${i}-${s.items[0] && s.items[0].id}`} items={s.items} labels={labels}
+            elements={elements} openStep={openStep} activeStep={activeStep} />;
         })}
         {!liveWork && plan ? <TodoCard todos={plan} labels={labels} running={running} /> : null}
         {running && !liveWork ? <WorkingIndicator mark={mark} motion={motion} start={start} label={liveLabel} /> : null}

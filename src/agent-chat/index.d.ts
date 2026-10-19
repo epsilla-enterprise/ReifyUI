@@ -65,10 +65,18 @@ export interface ToolDescription {
   diff: { added: number; removed: number } | null;
   todos: TodoEntry[] | null;
 }
-export function describeTool(name: string, args: unknown): ToolDescription;
+/** The element a browser call acts on, as a page snapshot named its ref. */
+export interface BrowserElement { role: string; name: string }
+/** `opts.element`: for a browser call, the element its ref names (from browserElements). */
+export function describeTool(name: string, args: unknown, opts?: { element?: BrowserElement | null }): ToolDescription;
 export function toolKind(name: string): ToolKind;
 export function toolLine(d: ToolDescription, state: 'running' | 'done'): string;
-export function summarizeCalls(calls: { name: string; args?: unknown }[]): string;
+export function summarizeCalls(calls: { name: string; args?: unknown; element?: BrowserElement | null }[]): string;
+/** The action a browser tool's name carries ("click" for mcp__plugs__browser_click), '' when the action
+ *  is an argument (`browser`, `computer`), null when the tool is not a browser's. */
+export function browserActOf(name: string): string | null;
+/** {[call id]: element} for the browser calls whose ref an earlier snapshot in the same turn named. */
+export function browserElements(items: TurnItem[] | null | undefined): Record<string, BrowserElement>;
 export function resultNote(kind: ToolKind, output: unknown): string;
 export function parseToolArgs(args: unknown): Record<string, unknown>;
 export function todosOf(args: Record<string, unknown>): TodoEntry[] | null;
@@ -110,10 +118,14 @@ export function WorkingIndicator(props: MarkProps & {
 export function CopyButton(props: { text: string; labels?: AgentLabels; label?: string }): ReactElement;
 export function DiffBadge(props: { diff: { added: number; removed: number } | null }): ReactElement | null;
 export function LinesBlock(props: { lines: { text: string; cls?: string }[]; limit?: number; labels?: AgentLabels; className?: string; numbered?: boolean }): ReactElement;
-export function StepRow(props: { item: ToolItem; labels?: AgentLabels; defaultOpen?: boolean }): ReactElement;
+/** A call the host shows in a place of its own: a handler for the calls it opens (a browser step opens
+ *  the browser beside the conversation), null for the rest, which unfold to their input and output. */
+export type OpenStep = (item: ToolItem, d: ToolDescription) => (() => void) | null | undefined;
+export function StepRow(props: { item: ToolItem; labels?: AgentLabels; defaultOpen?: boolean; element?: BrowserElement | null;
+  openStep?: OpenStep; active?: boolean }): ReactElement;
 export function ThinkingRow(props: { item: ThinkingItem; labels?: AgentLabels }): ReactElement;
 export function WorkGroup(props: MarkProps & { items: (ToolItem | ThinkingItem)[]; live?: boolean; liveLabel?: string; start?: number | null;
-  labels?: AgentLabels; defaultOpen?: boolean }): ReactElement | null;
+  labels?: AgentLabels; defaultOpen?: boolean; elements?: Record<string, BrowserElement> | null; openStep?: OpenStep; activeStep?: string | null }): ReactElement | null;
 export function TodoCard(props: { todos: TodoEntry[] | null; labels?: AgentLabels; running?: boolean }): ReactElement | null;
 export function StreamingText(props: { text: string; active?: boolean; render?: (text: string) => ReactNode }): ReactElement;
 export function UserBubble(props: { user: TurnUser | null; renderFile?: (f: { name: string; src?: string }, i: number) => ReactNode; extra?: ReactNode }): ReactElement | null;
@@ -136,6 +148,10 @@ export interface AgentTurnViewProps extends MarkProps {
   describeIncomplete?: (i: { reason?: string; detail?: string }) => string;
   /** the epoch ms the live clock counts from, when it is not the turn's own startedAt */
   liveStart?: number | null;
+  /** calls the host opens in a place of its own (a browser step opens the browser), instead of unfolding */
+  openStep?: OpenStep;
+  /** the id of the call the host is showing now: its row stays marked */
+  activeStep?: string | null;
 }
 export function AgentTurnView(props: AgentTurnViewProps): ReactElement | null;
 

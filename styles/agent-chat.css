@@ -193,6 +193,10 @@
 .uac-step-time { flex: none; font-size: 12px; color: var(--_faint); font-variant-numeric: tabular-nums; }
 .uac-step.is-failed .uac-step-o, .uac-step.is-failed .uac-step-v { color: var(--_fail); }
 .uac-step-err { margin: -2px 0 0; padding: 0 12px 9px 36px; font-family: var(--_mono); font-size: 12px; color: var(--_fail); overflow-wrap: anywhere; }
+/* a call the host opens in a place of its own (openStep): the one it is showing now stays marked */
+.uac-step.is-active > .uac-step-h { background: var(--_hover); }
+.uac-step.is-active .uac-step-v { color: var(--_ink-2); }
+.uac-step.is-active .uac-kind { color: var(--_brand); }
 .uac-kind, .uac-x, .uac-ring, .uac-stopped { flex: none; width: 16px; height: 16px; display: grid; place-items: center; }
 .uac-kind { color: var(--_faint); }
 .uac-kind svg { width: 14px; height: 14px; }

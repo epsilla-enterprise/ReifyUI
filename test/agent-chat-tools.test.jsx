@@ -1,7 +1,7 @@
 // Tool calls in every harness's own words, as a person reads them.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeTool, toolKind, toolLine, summarizeCalls, resultNote, patchStats, formatElapsed, formatDuration, formatTokens, motionFor } from '../src/agent-chat/index.js';
+import { describeTool, toolKind, toolLine, summarizeCalls, resultNote, patchStats, formatElapsed, formatDuration, formatTokens, motionFor, browserElements, browserActOf } from '../src/agent-chat/index.js';
 
 const j = (o) => JSON.stringify(o);
 
@@ -102,4 +102,74 @@ test('every known base has a motion; an unknown one pulses', () => {
   assert.equal(motionFor('gemini'), 'glint');
   assert.equal(motionFor('pi'), 'flip');
   assert.equal(motionFor('something-new'), 'pulse');
+});
+
+test('a browser call names what it did, never "a tool"', () => {
+  const line = (name, args, st = 'done', element) => toolLine(describeTool(name, j(args), { element }), st);
+  // the browser plug's thirteen tools, as the agent calls them
+  assert.equal(line('browser_navigate', { url: 'https://duckduckgo.com/' }), 'Opened duckduckgo.com');
+  assert.equal(line('browser_navigate', { url: 'https://www.bing.com/images/search?q=x' }, 'running'), 'Opening www.bing.com/images/search');
+  assert.equal(line('browser_click', { ref: 'e12' }), 'Clicked on the page');
+  assert.equal(line('browser_click', { selector: 'a.result__a' }), 'Clicked a link');
+  assert.equal(line('browser_click', { selector: 'button[type=submit]' }), 'Clicked a button');
+  assert.equal(line('browser_type', { ref: 'e2', text: 'hunter2', submit: true }), 'Typed into a field');
+  assert.equal(line('browser_type', { ref: 'e2', text: 'cats' }, 'running'), 'Typing into a field');
+  assert.equal(line('browser_screenshot', {}), 'Took a screenshot');
+  assert.equal(line('browser_screenshot', { full_page: true }), 'Took a screenshot of the whole page');
+  assert.equal(line('browser_snapshot', {}), 'Read the page');
+  assert.equal(line('browser_extract_text', {}), 'Read the page’s text');
+  assert.equal(line('browser_get_url', {}), 'Checked the address');
+  assert.equal(line('browser_press_key', { key: 'Enter' }), 'Pressed Enter');
+  assert.equal(line('browser_scroll', { direction: 'down', pixels: 600 }), 'Scrolled down');
+  assert.equal(line('browser_scroll', {}), 'Scrolled the page');
+  assert.equal(line('browser_wait_for', { text: 'Results' }), 'Waited for “Results”');
+  assert.equal(line('browser_wait_for', { ms: 2000 }), 'Waited 2s');
+  assert.equal(line('browser_back', {}), 'Went back a page');
+  assert.equal(line('browser_list_tabs', {}), 'Listed the tabs');
+  assert.equal(line('browser_switch_tab', { index: 1 }), 'Switched tabs');
+  // the element a ref names, when a snapshot said
+  assert.equal(line('browser_click', { ref: 'e12' }, 'done', { role: 'link', name: 'About' }), 'Clicked the “About” link');
+  assert.equal(line('browser_type', { ref: 'e2', text: 'x' }, 'done', { role: 'textbox', name: 'Search' }), 'Typed into the “Search” field');
+  assert.equal(line('browser_click', { ref: 'e3' }, 'done', { role: 'button', name: '' }), 'Clicked a button');
+  // what was typed is never in the line
+  assert.doesNotMatch(line('browser_type', { ref: 'e2', text: 'hunter2' }), /hunter2/);
+  // the same tools through a connected server, Playwright MCP's names, one tool with an action
+  for (const name of ['mcp__plugs__browser_click', 'plugs.browser_click', 'plugs__browser_click', 'mcp__playwright__browser_click']) {
+    assert.equal(toolKind(name), 'browser', name);
+    assert.equal(line(name, { ref: 'e1' }), 'Clicked on the page', name);
+  }
+  assert.equal(line('mcp__playwright__browser_take_screenshot', {}), 'Took a screenshot');
+  assert.equal(line('browser_navigate_back', {}), 'Went back a page');
+  assert.equal(line('browser_click', { element: 'Sign in button', ref: 'e9' }), 'Clicked Sign in button');
+  assert.equal(line('browser_wait_for', { time: 3 }), 'Waited 3s');
+  assert.equal(line('computer', { action: 'left_click', coordinate: [10, 20] }), 'Clicked on the page');
+  assert.equal(line('computer', { action: 'key', text: 'Return' }), 'Pressed Return');
+  assert.equal(line('browser', { action: 'navigate', url: 'https://example.com/a' }), 'Opened example.com/a');
+  assert.equal(line('browser', {}), 'Used the browser');
+  assert.equal(line('browser_frobnicate', {}), 'Used the browser');
+  // no browser line anywhere says "a tool"
+  for (const name of ['browser_click', 'browser_hover', 'browser_select_option', 'browser_drag', 'browser_evaluate', 'browser_close', 'browser', 'browser_x']) {
+    for (const st of ['running', 'done']) assert.doesNotMatch(line(name, {}, st), /a tool/, `${name} ${st}`);
+  }
+  // other kinds with nothing to name read whole too
+  assert.equal(toolLine(describeTool('WebSearch', '{}'), 'done'), 'Searched the web');
+});
+
+test('the element a browser call acted on, from the snapshot before it', () => {
+  const items = [
+    { kind: 'tool', id: 'a', name: 'browser_navigate', args: j({ url: 'https://duckduckgo.com' }), output: 'Opened https://duckduckgo.com/ (DuckDuckGo)\n\ne1 link "About"\ne2 textbox "Search the web"', status: 'done' },
+    { kind: 'tool', id: 'b', name: 'browser_type', args: j({ ref: 'e2', text: 'cats' }), output: 'Typed 4 characters.', status: 'done' },
+    { kind: 'tool', id: 'c', name: 'browser_snapshot', args: '{}', output: 'https://duckduckgo.com/?q=cats\n\ne1 button "Images"', status: 'done' },
+    { kind: 'tool', id: 'd', name: 'browser_click', args: j({ ref: 'e1' }), output: 'Clicked.', status: 'done' },
+    { kind: 'tool', id: 'e', name: 'mcp__playwright__browser_snapshot', args: '{}', output: '- generic [ref=e1]:\n  - link "Docs" [ref=e7] [cursor=pointer]', status: 'done' },
+    { kind: 'tool', id: 'f', name: 'mcp__playwright__browser_click', args: j({ ref: 'e7' }), status: 'running' },
+  ];
+  const el = browserElements(items);
+  assert.deepEqual(el.b, { role: 'textbox', name: 'Search the web' });
+  assert.deepEqual(el.d, { role: 'button', name: 'Images' }, 'refs are read against the latest snapshot');
+  assert.deepEqual(el.f, { role: 'link', name: 'Docs' });
+  assert.equal(summarizeCalls([{ name: items[3].name, args: items[3].args, element: el.d }]), 'Clicked the “Images” button');
+  assert.equal(browserActOf('mcp__plugs__browser_navigate'), 'navigate');
+  assert.equal(browserActOf('computer'), '');
+  assert.equal(browserActOf('Bash'), null);
 });

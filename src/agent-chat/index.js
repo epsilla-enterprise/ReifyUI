@@ -3,7 +3,7 @@
 //   the data      newTurn, reduceTurn, finish, turnFromEvents, turnFromResponse, turnFromHistory,
 //                 turnFromMessage, liveState, segments, latestPlan, isTerminal
 //   the words     describeTool, toolKind, toolLine, summarizeCalls, resultNote, parseToolArgs,
-//                 todosOf, diffOf, patchStats, commandText
+//                 todosOf, diffOf, patchStats, commandText, browserActOf, browserElements
 //   the clocks    formatElapsed, formatDuration, formatTokens, useElapsed, useNow
 //   the marks     MARK_MOTIONS, MOTIONS, motionFor
 //   the views     AgentConversation, AgentTurnView, WorkGroup, StepRow, ThinkingRow, TodoCard,
@@ -17,7 +17,7 @@
 export { newTurn, reduceTurn, finish, turnFromEvents, turnFromResponse, turnFromHistory, turnFromMessage,
   liveState, segments, latestPlan, isTerminal } from './turn.js';
 export { describeTool, toolKind, toolLine, summarizeCalls, resultNote, parseToolArgs, todosOf, diffOf, patchStats,
-  commandText, baseNameOf, lineCount } from './tools.js';
+  commandText, baseNameOf, lineCount, browserActOf, browserElements } from './tools.js';
 export { formatElapsed, formatDuration, formatTokens, useElapsed, useNow } from './time.js';
 export { MARK_MOTIONS, MOTIONS, motionFor } from './marks.js';
 export { AgentConversation, AgentTurnView, WorkGroup, StepRow, ThinkingRow, TodoCard, WorkingIndicator, WorkingMark,
