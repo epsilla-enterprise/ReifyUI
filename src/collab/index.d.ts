@@ -18,6 +18,8 @@ export interface LiveDoc {
   synced: boolean;
   status: string;
   awareness: unknown;
+  /** Live editing was refused for this person (the host's ticket route said 401/403): no retry. */
+  stopped?: boolean;
   [k: string]: unknown;
 }
 /** One live-document core: provider lifecycle, sync state, awareness, for any live surface. */

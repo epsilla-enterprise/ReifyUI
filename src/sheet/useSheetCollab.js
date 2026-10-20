@@ -35,7 +35,8 @@ export function sheetOps(doc) {
   };
 }
 
-/** Returns { ready, sheet, ops, liveRun, copilotBuilding, peers, setPresence }.
+/** Returns { ready, stopped, sheet, ops, liveRun, copilotBuilding, peers, setPresence }.
+ *  `stopped`: live editing was refused for this person (removed, signed out); the host says so.
  *  fetchTicket(resourceId) -> {url, doc, token} | null (host-authenticated).
  *  me -> {id, name, email} of the current member, for presence.
  *  Presence (awareness): {id, name, tab, sel: {a:[rowId,colId], f:[rowId,colId]}|null,
@@ -98,5 +99,5 @@ export function useSheetCollab(resourceId, { fetchTicket, me } = {}) {
                         sel: (state && state.sel) || null, typing: (state && state.typing) || null, at: Date.now() });
   }, [live.setAwareness, who.id, who.name, who.email]);
 
-  return { ready: live.ready, sheet, ops, liveRun, copilotBuilding, peers, setPresence };
+  return { ready: live.ready, stopped: live.stopped, sheet, ops, liveRun, copilotBuilding, peers, setPresence };
 }

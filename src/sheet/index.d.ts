@@ -10,6 +10,8 @@ export interface SheetCollab {
   /** Apply ops to the live document (the only way anyone writes). */
   ops(ops: SheetOp[]): void;
   peers: Array<Record<string, unknown>>;
+  /** Live editing was refused for this person (removed, signed out): the host says so, with a reload. */
+  stopped: boolean;
   setPresence(presence: Record<string, unknown> | null): void;
   [k: string]: unknown;
 }

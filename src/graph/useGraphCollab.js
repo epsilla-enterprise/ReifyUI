@@ -266,6 +266,7 @@ export function useGraphCollab(graphId, user, { fetchTicket } = {}) {
 
   return {
     ready,
+    stopped: live.stopped,   // live editing was refused for this person: the host says so
     liveGraph,
     peers,
     copilotBuilding,
