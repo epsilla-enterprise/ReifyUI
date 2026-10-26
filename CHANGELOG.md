@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.1
+
+- Deep Agents' `execute` reads as a shell command: its row shows the command ("Running sleep 8; echo
+  done", then "Ran …") and its calls count as commands, instead of "Using Execute".
+
 ## 0.18.0
 
 - A browser call names what it did: "Opened duckduckgo.com", "Clicked the “About” link", "Typed into

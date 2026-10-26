@@ -2,7 +2,7 @@
 //
 // Harnesses name the same act differently: Claude Code's `Bash`, Codex's `exec_command`, Gemini
 // CLI's `run_shell_command`, Hermes's `terminal`, Goose's `developer__shell`, OpenHands's
-// `execute_bash`. They pass through a gateway untouched, so the renderer is the one place that can
+// `execute_bash`, Deep Agents' `execute`. They pass through a gateway untouched, so the renderer is the one place that can
 // read them all. describeTool(name, args) folds a call into one of a few kinds and pulls out the
 // one thing a reader wants to see (the command, the file, the query, the URL), plus what the call
 // changed (lines added and removed) and, for planning tools, the plan itself.
@@ -25,7 +25,7 @@ const KIND_BY_NAME = {};
 function kinds(kind, names) { for (const n of names) KIND_BY_NAME[n] = kind; }
 kinds('shell', ['bash', 'shell', 'exec_command', 'local_shell', 'run_shell_command', 'terminal', 'execute_bash',
   'run_command', 'command', 'run_terminal_cmd', 'execute_command', 'powershell', 'cmd', 'command_execution',
-  'exec', 'run', 'sh', 'process']);
+  'exec', 'run', 'sh', 'process', 'execute']);
 kinds('shell_output', ['bashoutput', 'bash_output', 'killshell', 'kill_shell', 'killbash']);
 kinds('read', ['read', 'read_file', 'readfile', 'view', 'view_file', 'cat', 'read_many_files', 'notebookread',
   'file_read', 'open_file', 'readmanyfiles', 'read_text_file']);

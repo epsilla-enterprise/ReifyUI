@@ -6,9 +6,13 @@ import { describeTool, toolKind, toolLine, summarizeCalls, resultNote, patchStat
 const j = (o) => JSON.stringify(o);
 
 test('shell commands across harnesses', () => {
-  for (const name of ['Bash', 'exec_command', 'run_shell_command', 'terminal', 'developer__shell', 'execute_bash', 'shell', 'Shell']) {
+  for (const name of ['Bash', 'exec_command', 'run_shell_command', 'terminal', 'developer__shell', 'execute_bash', 'shell', 'Shell', 'execute']) {
     assert.equal(toolKind(name), 'shell', name);
   }
+  // Deep Agents' shell tool: the row names the command, not "Using Execute"
+  const dcode = describeTool('execute', j({ command: 'sleep 8; echo done', timeout: 10 }));
+  assert.equal(toolLine(dcode, 'running'), 'Running sleep 8; echo done');
+  assert.equal(toolLine(dcode, 'done'), 'Ran sleep 8; echo done');
   const cc = describeTool('Bash', j({ command: 'npm test', description: 'Run the test suite' }));
   assert.equal(cc.target, 'Run the test suite', 'the agent\'s own description reads first');
   assert.equal(toolLine(cc, 'running'), 'Run the test suite');
