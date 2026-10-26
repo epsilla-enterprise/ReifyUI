@@ -23,6 +23,10 @@
 //
 // Editing is optimistic: local edits call onChange with the next sheet; the host persists and
 // hands truth back through `sheet`.
+//
+// Row heights: a row with no `height` fits its tallest cell, up to --shg-row-max (eight lines
+// unless the host sets it); a cell with more than that scrolls inside itself. A row with a
+// `height` (someone dragged it) is exactly that tall, and its cells scroll the same way.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -67,6 +71,12 @@ const COMPUTE_KINDS = [
 ];
 const RESOURCE_KINDS = ['image', 'sheet', 'slides', 'workflow', 'graph'];
 const RESOURCE_ICON = { image: '🖼', sheet: '▦', slides: '▤', workflow: '⚙', graph: '◉' };
+
+// Select and resource cells edit in a popover, so the cell keeps showing its value under it.
+// Every other editable cell edits in place, and of those only these hold a single line.
+const POPOVER_EDITORS = new Set(['select', 'resource']);
+const SINGLE_LINE_EDITORS = new Set(['number', 'date', 'tags']);
+const isMultiline = (col) => !SINGLE_LINE_EDITORS.has(col.type);
 
 // Popovers render through a body portal with FIXED positioning — inside the grid they'd be
 // clipped by the scroll container and out-stacked by the sticky header/row-number cells. anchor
@@ -245,6 +255,10 @@ export function SheetGrid({
       document.body.style.cursor = '';
       if (!d) return;
       setSizeDraft({});
+      // A press that never moved is not a resize. Committing it pinned the row at whatever height
+      // it had, and a pinned row stops fitting its content, so a click near a cell's bottom edge
+      // quietly froze the row.
+      if (d.last === d.start) return;
       mutate((n) => {
         if (d.kind === 'col') { const c = n.columns.find((x) => x.id === d.id); if (c) c.width = Math.round(d.last); }
         else { const r = n.rows.find((x) => x.id === d.id); if (r) r.height = Math.round(d.last); }
@@ -308,8 +322,29 @@ export function SheetGrid({
   const numW = Math.max(48, 30 + String(rows.length || 1).length * 9);
   const numStyle = { width: numW, minWidth: numW, maxWidth: numW };
   const rowHeight = (row) => (sizeDraft.row && sizeDraft.row[row.id]) || row.height || undefined;
+  // The table lays an unsized row out to its tallest cell, so a row fits on the first render,
+  // after an edit and while a column is dragged, with nothing to measure and nothing to store. A
+  // sized row becomes its own cap: its cells never push it past the height it was given.
+  const rowStyle = (row) => {
+    const h = rowHeight(row);
+    return {
+      ...(h ? { height: h, '--shg-row-max': `${h - 1}px` } : null),
+      // The grid's own text wraps and no longer reads this; it stays for host cell bodies that do.
+      '--shg-clamp': Math.max(1, Math.floor(((h || 34) - 10) / 18)),
+    };
+  };
+  // Double-clicking a row's edge hands it back to its content, as it does in a spreadsheet.
+  const fitRow = (rowId) => mutate((n) => {
+    const r = n.rows.find((x) => x.id === rowId); if (r) delete r.height;
+  });
 
-  useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+  useEffect(() => {
+    const el = editing && inputRef.current;
+    if (!el) return;
+    el.focus();
+    // Into a cell's text at its end, where an edit to a long value usually goes.
+    if (el.tagName === 'TEXTAREA') el.setSelectionRange(el.value.length, el.value.length);
+  }, [editing]);
 
   const mutate = (fn) => {
     if (readOnly || !onChange) return;
@@ -426,6 +461,20 @@ export function SheetGrid({
         </PopPortal>
       );
     }
+    // Text edits in a textarea: an <input> strips line breaks from its value, so opening a
+    // multi-line cell and clicking away rewrote it as one line. Enter still commits, as in any
+    // spreadsheet; Shift+Enter is a new line inside the cell.
+    if (isMultiline(col)) {
+      return (
+        <textarea ref={inputRef} className="shg-input shg-input-area" value={draft} rows={1}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); commitEdit(); }
+                    if (e.key === 'Escape') setEditing(null);
+                  }} />
+      );
+    }
     const inputType = col.type === 'date' ? 'date' : col.type === 'number' ? 'number' : 'text';
     return (
       <input ref={inputRef} className="shg-input" type={inputType} value={draft}
@@ -475,17 +524,15 @@ export function SheetGrid({
           </thead>
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={row.id} data-row-id={row.id}
-                  style={{
-                    ...(rowHeight(row) ? { height: rowHeight(row) } : null),
-                    '--shg-clamp': Math.max(1, Math.floor(((rowHeight(row) || 34) - 10) / 18)),
-                  }}>
+              <tr key={row.id} data-row-id={row.id} style={rowStyle(row)}>
                 <td className={'shg-rownum' + dndClass('row', row.id)} style={numStyle}
                     title="Drag to reorder" {...dndProps('row', row.id)}>
                   <span>{ri + 1}</span>
                   {!readOnly && <button className="shg-rowdel" onClick={() => deleteRow(row.id)} title="Delete row">×</button>}
                   {!readOnly && (
-                    <span className="shg-resize-row" onMouseDown={(e) => startResize(e, 'row', row.id, rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)} />
+                    <span className="shg-resize-row" title="Drag to resize, double-click to fit"
+                          onMouseDown={(e) => startResize(e, 'row', row.id, rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)}
+                          onDoubleClick={() => fitRow(row.id)} />
                   )}
                 </td>
                 {columns.map((col) => {
@@ -523,11 +570,21 @@ export function SheetGrid({
                           <span className="shg-resize-row shg-resize-in-cell"
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => startResize(e, 'row', row.id,
-                                  rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)} />
+                                  rowHeight(row) || e.currentTarget.closest('tr').offsetHeight)}
+                                onDoubleClick={(e) => { e.stopPropagation(); fitRow(row.id); }} />
                         </>
                       )}
                       {peer && <span className="shg-peer-flag" style={{ background: peer.color }}>{peer.name}</span>}
-                      {isEditing ? renderEditor(col) : (
+                      {isEditing && renderEditor(col)}
+                      {isEditing && !POPOVER_EDITORS.has(col.type) ? (
+                        // The editor lies over the cell; this invisible copy of the draft holds the
+                        // cell's place, so the row keeps its height while you type and grows with
+                        // the draft, to the same cap as the value. The trailing zero-width space
+                        // gives a draft that ends in a line break its last, empty line.
+                        <div className="shg-val shg-val-mirror" aria-hidden="true">
+                          <span className="shg-val-txt">{`${typeof draft === 'string' ? draft : ''}\u200b`}</span>
+                        </div>
+                      ) : (
                         <div className="shg-val">
                           {custom !== undefined ? custom : (
                             <>
@@ -723,10 +780,10 @@ function ColumnMenu({ col, columns, anchor, columnTypes, renderColumnConfig, onA
 /**
  * The height each row would need to show its content in full, measured from what is on screen.
  *
- * A row is clamped to its height by design — a sheet you cannot scan is not a sheet. But after a
- * run, the thing a person wants is the answer, and an answer cut off at one line with no way to
- * see the rest is the grid hiding the work it just paid for. So the host measures and commits a
- * height, ONCE, rather than the grid guessing continuously.
+ * Since 0.8.4 the grid fits a row with no stored height by itself, on every render, so a host no
+ * longer needs this to show a run's answer. Committing what it returns STORES a height, and a
+ * stored height is a row someone sized: it stops refitting when the column or the text changes.
+ * Kept for a host that wants exactly that.
  *
  * Measured, not estimated: `scrollHeight` is what the content actually occupies at this width,
  * including the file cards. A formula over character counts would be a number nobody derived.

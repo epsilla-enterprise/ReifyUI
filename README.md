@@ -257,6 +257,12 @@ const COLUMN_TYPES = [
 />
 ```
 
+A cell shows all of its value. Text wraps at the cell's edge and keeps its own line breaks, and a
+row grows to fit its tallest cell, up to eight lines; past that the cell scrolls inside itself, so
+one long value never turns its row into a page. Set `--shg-row-max` on the grid or above it to move
+the cap. A row with a `height` (someone dragged it) is exactly that tall, and double-clicking its
+edge hands it back to its content.
+
 `sheetToDelimited(sheet, sep, { cellText })` and `sheetToAoA(sheet, { cellText })` export the grid;
 pass `cellText` so a custom column exports as something a person wants rather than as raw JSON.
 

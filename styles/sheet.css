@@ -14,17 +14,22 @@
   border: 1px solid var(--uic-line, #DDDFE6);
   padding: 0; height: 34px; box-sizing: border-box;
 }
+/* 34px is a row's floor; a row is as tall as its tallest cell. Every cell in it reads from the
+   top, level with the first line of that tallest one, rather than floating to the middle. */
+.shg-table tbody td { vertical-align: top; }
 .shg-corner, .shg-rownum {
   background: var(--uic-surface-2, #F7F8FA);
   text-align: center; color: var(--uic-mute-2, #8E9199); font-variant-numeric: tabular-nums;
   position: sticky; left: 0; z-index: 3;
 }
 .shg-corner { z-index: 6; }
-.shg-rownum span { font-size: 12.5px; }
+/* The number sits in a band the height of a one-line row, so it lines up with the first line of
+   a tall row as well as centering in a short one. */
+.shg-rownum span { font-size: 12.5px; display: block; line-height: 32px; }
 /* A 12x18 target for a destructive action was too small to hit deliberately and too small to
    read. It is a real button now, and the gutter is wide enough to hold it beside the number. */
 .shg-rowdel {
-  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 3px; top: 6px;
   width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
   border: none; border-radius: 5px; background: transparent; color: var(--uic-mute-2, #8E9199);
   cursor: pointer; font-size: 17px; line-height: 1; opacity: 0; padding: 0;
@@ -64,21 +69,33 @@
 .shg-cell:hover { background: var(--uic-surface-2, #F7F8FA); }
 /* The cell is the constraint on its own value. This used to carry an inline max-width of the
    column width minus 20, or 400px where the column had no explicit width — a number nothing
-   derived, which ellipsised a value long before its own cell ran out of room. */
-.shg-val { display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; height: 100%;
-           width: 100%; min-width: 0; box-sizing: border-box; }
+   derived, which ellipsised a value long before its own cell ran out of room.
+
+   The value box is what sizes the row, and it stops at --shg-row-max: eight lines by default, or
+   the height of a row someone sized. Past that the value scrolls inside its own cell, so one
+   long cell can never turn its row into a page. A host changes the cap by setting the variable
+   on the grid or anywhere above it. */
+.shg-val { display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px;
+           width: 100%; min-width: 0; box-sizing: border-box;
+           max-height: var(--shg-row-max, calc(8 * 18px + 12px));
+           overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; }
 .shg-val-txt {
   flex: 1; min-width: 0; color: var(--uic-ink, #111317); align-self: flex-start;
-  /* Wrap to the row's height; the last visible line ellipsizes. Rows at the
-     default height clamp to one line (classic sheet behavior); taller rows
-     show more lines. --shg-clamp is set per row from its height. */
-  display: -webkit-box; -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--shg-clamp, 1);
-  overflow: hidden; white-space: normal; word-break: break-word;
+  /* All of the value, as written: its own line breaks kept, and a long word or an address broken
+     at the cell's edge, never ellipsised and never pushed past it. */
+  white-space: pre-wrap; overflow-wrap: anywhere;
   line-height: 18px;
 }
-.shg-input { width: 100%; height: 100%; border: 2px solid var(--uic-brand, #285AFF); padding: 0 8px;
-             font-size: 13px; font-family: inherit; outline: none; box-sizing: border-box; }
+/* The editor lies over its cell. Under it, an invisible copy of the draft (.shg-val-mirror) holds
+   the cell's place, so the row keeps its height while you type and grows with the draft. The ring
+   is a shadow, not a border, so the textarea wraps at exactly the width the copy does. */
+.shg-val-mirror { visibility: hidden; }
+.shg-input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%;
+             border: none; box-shadow: inset 0 0 0 2px var(--uic-brand, #285AFF); padding: 0 8px;
+             font-size: 13px; font-family: inherit; color: var(--uic-ink, #111317);
+             background: var(--uic-surface, #FFFFFF); outline: none; box-sizing: border-box; }
+.shg-input-area { display: block; padding: 6px 10px; line-height: 18px; resize: none;
+                  white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; }
 .shg-runcell {
   border: none; background: transparent; color: var(--uic-brand, #285AFF); cursor: pointer;
   font-size: 10px; opacity: 0; flex-shrink: 0; padding: 2px 4px;
@@ -104,10 +121,12 @@
 .shg-add-row:hover { border-color: var(--uic-brand, #285AFF); color: var(--uic-brand, #285AFF); }
 
 /* ── Typed cell values ─────────────────────────────────────────────────── */
+/* A long option wraps inside its pill like any other value. The radius is half a one-line pill's
+   height, so one line still reads as a pill and two read as a rounded box, not a lozenge. */
 .shg-pill {
   display: inline-flex; align-items: center; max-width: 100%;
-  padding: 1.5px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  color: var(--uic-ink, #1F2937); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 1.5px 9px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  color: var(--uic-ink, #1F2937); white-space: normal; overflow-wrap: anywhere;
 }
 .shg-pills { display: flex; gap: 4px; overflow: hidden; flex: 1; min-width: 0;
               flex-wrap: wrap; max-height: 100%; align-content: center; }
@@ -117,8 +136,8 @@
   font-size: 12px; font-weight: 700; color: var(--uic-on-brand, #fff); background: var(--uic-surface, #FFFFFF);
 }
 .shg-check.on { background: var(--uic-brand, #285AFF); border-color: var(--uic-brand, #285AFF); }
-.shg-link { color: var(--uic-brand, #285AFF); text-decoration: none; overflow: hidden;
-            text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.shg-link { color: var(--uic-brand, #285AFF); text-decoration: none; line-height: 18px;
+            overflow-wrap: anywhere; flex: 1; min-width: 0; }
 .shg-link:hover { text-decoration: underline; }
 .shg-num { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -195,7 +214,8 @@
 
 /* ── Ghost add-row (Airtable-style, attached to the grid) ───────────────── */
 .shg-ghost-row { cursor: pointer; }
-.shg-ghost-row td { border-color: var(--uic-line, #DDDFE6); background: var(--uic-surface, #FFFFFF); }
+.shg-ghost-row td { border-color: var(--uic-line, #DDDFE6); background: var(--uic-surface, #FFFFFF);
+                    vertical-align: middle; }
 .shg-ghost-num { color: var(--uic-mute-2, #8E9199); font-size: 15px !important; }
 .shg-ghost-cell { color: var(--uic-mute-2, #8E9199); font-size: 12.5px; padding: 0 10px !important; }
 .shg-ghost-row:hover td { background: var(--uic-brand-faint, #EFF3FF); }

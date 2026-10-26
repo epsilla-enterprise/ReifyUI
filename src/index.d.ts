@@ -496,6 +496,8 @@ export interface SheetColumn {
   options?: Array<string | { label?: string; value?: unknown; color?: string }>;
   [key: string]: unknown;
 }
+/** With no `height` a row fits its tallest cell, up to --shg-row-max (eight lines by default), and
+ *  a cell holding more scrolls inside itself. A `height` is a row someone sized: exactly that tall. */
 export interface SheetRow { id: string; height?: number; [key: string]: unknown }
 export interface SheetCell { value?: unknown; status?: string; error?: string | null; [key: string]: unknown }
 export interface Sheet {
